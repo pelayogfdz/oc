@@ -60,7 +60,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
   const renderMenuIcon = (icon: React.ReactNode) => {
     if (!icon) return null;
     if (React.isValidElement(icon)) {
-      return React.cloneElement(icon as React.ReactElement<any>, { size: 20 });
+      return React.cloneElement(icon as React.ReactElement<any>, { size: 24 });
     }
     return icon;
   };
@@ -102,22 +102,38 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
         className={`sidebar-overlay ${isMobileMenuOpen ? 'open' : ''}`} 
         onClick={closeMenu} 
       />
-      <aside 
-        className={`dashboard-sidebar ${isMobileMenuOpen ? 'open' : ''} bg-white flex flex-col h-screen border-r border-slate-200/90 shadow-xs overflow-y-auto select-none`}
-      >
-        {/* Brand Header */}
-        <div className="p-4 pb-3 border-b border-slate-100 flex-shrink-0">
-          <Link href="/" className="flex items-center gap-2.5 no-underline text-slate-900 group">
-            <div className="w-9 h-9 rounded-xl bg-purple-600 text-white font-black text-xl flex items-center justify-center shadow-sm shadow-purple-500/30 group-hover:scale-105 transition-transform flex-shrink-0">
-              C
-            </div>
-            <div className="flex items-center gap-1.5 flex-1 min-w-0">
-              <span className="font-black text-xl tracking-tight text-slate-900">CAANMA</span>
-              <span className="text-[10px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded-md border border-purple-200/80">
-                PRO
-              </span>
-            </div>
-          </Link>
+      <aside className={`dashboard-sidebar ${isMobileMenuOpen ? 'open' : ''}`} style={{ 
+        backgroundColor: 'var(--caanma-sidebar-bg)',
+        color: 'var(--caanma-sidebar-text)', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        height: '100vh',
+        boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
+
+      overflowY: 'auto',
+      fontSize: '0.98rem'
+    }}>
+      {/* Brand Header */}
+      <div style={{ padding: '1.125rem 1rem 0.5rem 1rem', marginBottom: '0.25rem' }}>
+        <Link href="/" style={{ textDecoration: 'none', color: 'var(--caanma-text)', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', flexWrap: 'nowrap' }}>
+          <div style={{
+            width: '38px',
+            height: '38px',
+            backgroundColor: 'var(--caanma-primary)',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontWeight: 'bold',
+            fontSize: '20px',
+            flexShrink: 0
+          }}>
+            C
+          </div>
+          <span style={{ fontWeight: 'bold', fontSize: '1.45rem', flexShrink: 0, letterSpacing: '-0.025em' }}>CAANMA</span>
+          <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#94a3b8', marginLeft: '0.15rem', flexShrink: 0 }}>PRO</span>
+        </Link>
 
         {!isOnline && (
           <div style={{
@@ -141,7 +157,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex-1 p-2 space-y-0.5">
+      <nav style={{ flex: 1, padding: '0.25rem 0.5rem 0.5rem 0.5rem', display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
         {navStructure.map((node) => {
           if (!hasNodeVisible(node)) return null;
 
@@ -150,87 +166,113 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
           let content;
           if (node.path) {
             const isNuevaVenta = node.title === 'Nueva Venta';
+            // Direct Link
             content = (
               <Link 
                 href={node.path} 
                 onClick={() => { if (isMobileMenuOpen) closeMenu(); }}
-                className={`${node.desktopOnly ? 'desktop-only-menu-item ' : ''}${
-                  isNuevaVenta 
-                    ? 'flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm shadow-sm shadow-purple-500/20 active:scale-[0.98] transition-all my-1.5'
-                    : `flex items-center gap-3 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
-                        NodeActive 
-                          ? 'bg-purple-50 text-purple-700 font-bold' 
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
-                      }`
-                }`}
+                className={node.desktopOnly ? 'desktop-only-menu-item' : ''}
+                style={isNuevaVenta ? {
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.9rem', 
+                  padding: '0.6rem 0.9rem', 
+                  borderRadius: '8px', 
+                  textDecoration: 'none', 
+                  backgroundColor: 'var(--caanma-primary)',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '1.08rem',
+                  transition: 'background 0.2s',
+                  marginBottom: '0.48rem',
+                  marginTop: '0.24rem'
+                } : { 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '1.2rem', 
+                  padding: '0.5rem 0.9rem', 
+                  borderRadius: '8px', 
+                  textDecoration: 'none', 
+                  backgroundColor: NodeActive ? 'var(--caanma-sidebar-hover)' : 'transparent',
+                  color: NodeActive ? 'var(--caanma-primary)' : 'inherit',
+                  fontWeight: NodeActive ? 'bold' : '500',
+                  transition: 'background 0.2s'
+                }}
               >
                 {isNuevaVenta ? (
-                  <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm leading-none flex-shrink-0">
-                    +
+                  <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '50%', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px' }}>
+                    <span style={{ fontSize: '20px', lineHeight: 1, fontWeight: 'bold' }}>+</span>
                   </div>
-                ) : (
-                  <div className={`flex-shrink-0 ${NodeActive ? 'text-purple-600' : 'text-slate-400'}`}>
-                    {renderMenuIcon(node.icon)}
-                  </div>
-                )}
-                <span className="flex-1 truncate">{node.title}</span>
+                ) : renderMenuIcon(node.icon)}
+                <span style={{ flex: 1 }}>{node.title}</span>
                 {node.badge && (
-                  <span className="bg-purple-100 text-purple-700 text-[11px] font-bold px-2 py-0.5 rounded-full border border-purple-200">
+                  <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', fontSize: '0.84rem', padding: '0.12rem 0.6rem', borderRadius: '12px', fontWeight: 'bold' }}>
                     {node.badge}
                   </span>
                 )}
               </Link>
             );
           } else {
+            // Dropdown Group
             const isOpen = openGroup === node.title;
             
             content = (
-              <div className={`${node.desktopOnly ? 'desktop-only-menu-item ' : ''}flex flex-col`}>
+              <div className={node.desktopOnly ? 'desktop-only-menu-item' : ''} style={{ display: 'flex', flexDirection: 'column' }}>
                 <div 
                   onClick={(e) => toggleGroup(node.title, e)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer transition-all ${
-                    NodeActive && !isOpen 
-                      ? 'text-purple-700 bg-purple-50/70 font-bold' 
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
-                  }`}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '1.2rem', 
+                    padding: '0.5rem 0.9rem', 
+                    borderRadius: '8px', 
+                    cursor: 'pointer',
+                    color: NodeActive && !isOpen ? 'var(--caanma-primary)' : 'inherit', // In caanma, active parents look highlighted if closed
+                    fontWeight: '500',
+                    transition: 'background 0.2s'
+                  }}
                 >
-                  <div className={`flex-shrink-0 ${NodeActive ? 'text-purple-600' : 'text-slate-400'}`}>
+                  <div style={{ color: NodeActive && !isOpen ? 'var(--caanma-primary)' : 'inherit' }}>
                     {renderMenuIcon(node.icon)}
                   </div>
-                  <span className="flex-1 truncate">{node.title}</span>
-                  {isOpen ? (
-                    <ChevronUp size={16} className="text-slate-400 flex-shrink-0" />
-                  ) : (
-                    <ChevronDown size={16} className="text-slate-400 flex-shrink-0" />
-                  )}
+                  <span style={{ flex: 1 }}>{node.title}</span>
+                  {isOpen ? <ChevronUp size={20} color="#64748b" /> : <ChevronDown size={20} color="#64748b" />}
                 </div>
 
                 {isOpen && node.items && (
-                  <div className="flex flex-col gap-0.5 ml-6 pl-3 border-l-2 border-slate-200 my-1">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingLeft: '3.6rem', marginTop: '0.3rem', marginBottom: '0.6rem' }}>
                     {node.items.map(item => {
-                      if (!isOnline && item.requiresOnline) return null;
-                      if (!hasNodeAccess(userPermissions, item.requiredPermission, isSuperAdmin, userRole)) return null;
-                      
+                      if (!isOnline && item.requiresOnline) {
+                        return null;
+                      }
+                      if (!hasNodeAccess(userPermissions, item.requiredPermission, isSuperAdmin, userRole)) {
+                        return null;
+                      }
                       const ItemActive = isItemActive(item.path);
                       return (
                         <Link 
                           key={item.name}
                           href={item.path} 
                           onClick={() => { if (isMobileMenuOpen) closeMenu(); }}
-                          className={`${item.desktopOnly ? 'desktop-only-menu-item ' : ''}flex items-center py-1.5 px-2 rounded-lg text-xs font-semibold transition-all ${
-                            ItemActive 
-                              ? 'bg-purple-50 text-purple-700 font-bold' 
-                              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-                          }`}
+                          className={item.desktopOnly ? 'desktop-only-menu-item' : ''}
+                          style={{ 
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '0.5rem 0', 
+                            textDecoration: 'none', 
+                            color: ItemActive ? 'var(--caanma-primary)' : 'inherit', // highlight style for inner links
+                            fontWeight: ItemActive ? 'bold' : '500',
+                            fontSize: '1.02rem'
+                          }}
                         >
-                          <span className="flex-1 truncate">{item.name}</span>
+                          <span style={{ flex: 1 }}>{item.name}</span>
                           {item.badge && (
-                            <span className="bg-purple-100 text-purple-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-purple-200">
+                            <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', fontSize: '0.78rem', padding: '0.12rem 0.5rem', borderRadius: '12px', fontWeight: 'bold', marginRight: '0.6rem' }}>
                               {item.badge}
                             </span>
                           )}
                         </Link>
-                      );
+                      )
                     })}
                   </div>
                 )}
@@ -239,17 +281,18 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
           }
 
           return (
-            <div key={node.title} className="flex flex-col">
+            <div key={node.title} style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
               {content}
               {node.hasDividerAfter && (
-                <div className="border-t border-slate-200 my-1.5 mx-2" />
+                <div style={{ height: '1px', backgroundColor: 'var(--caanma-border)', margin: '0.6rem 0.3rem' }} />
               )}
             </div>
           );
         })}
 
-        {/* Footer Navigation Items */}
-        <div className="pt-3 mt-4 border-t border-slate-100 space-y-0.5">
+
+        {/* Footer Items Wrapper */}
+        <div style={{ marginTop: 'auto' }}>
           {footerNodes.filter(node => {
             return hasNodeAccess(userPermissions, node.requiredPermission, isSuperAdmin, userRole);
           }).map(node => (
@@ -257,12 +300,20 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
               key={node.title}
               href={node.path!} 
               onClick={() => { if (isMobileMenuOpen) closeMenu(); }}
-              className={`${node.desktopOnly ? 'desktop-only-menu-item ' : ''}flex items-center gap-3 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 transition-all`}
+              className={node.desktopOnly ? 'desktop-only-menu-item' : ''}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '1.2rem', 
+                padding: '0.5rem 0.9rem', 
+                borderRadius: '8px', 
+                textDecoration: 'none', 
+                color: 'var(--caanma-text-muted)',
+                fontWeight: '500'
+              }}
             >
-              <div className="text-slate-400">
-                {renderMenuIcon(node.icon)}
-              </div>
-              <span>{node.title}</span>
+              {renderMenuIcon(node.icon)}
+              {node.title}
             </Link>
           ))}
           
@@ -270,10 +321,21 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
             <Link 
               href="/admin" 
               onClick={() => { if (isMobileMenuOpen) closeMenu(); }}
-              className="flex items-center gap-3 px-3 py-2 mt-2 rounded-xl text-xs sm:text-sm font-bold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-all"
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '1.2rem', 
+                padding: '0.5rem 0.9rem', 
+                marginTop: '0.6rem',
+                borderRadius: '8px', 
+                textDecoration: 'none', 
+                backgroundColor: '#fee2e2',
+                color: '#dc2626',
+                fontWeight: 'bold'
+              }}
             >
-              <ShieldAlert size={18} className="text-rose-600" />
-              <span>Panel Global (Negocio)</span>
+              <ShieldAlert size={24} />
+              Panel Global (Negocio)
             </Link>
           )}
         </div>

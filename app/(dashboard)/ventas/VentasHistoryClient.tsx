@@ -1112,16 +1112,25 @@ export default function VentasHistoryClient({
 
   return (
     <div>
-      <div className="page-header-container flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+      <div className="page-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
-          <h1 className="page-header-title text-2xl font-black text-slate-900 tracking-tight" style={{ margin: 0 }}>Historial de Ventas</h1>
-          <p className="page-header-subtitle text-xs sm:text-sm text-slate-500 font-medium mt-1">Módulo de ventas y cortes de caja</p>
+          <h1 className="page-header-title" style={{ fontSize: '1.875rem', fontWeight: 'bold', color: 'var(--caanma-text)', margin: 0 }}>Historial de Ventas</h1>
+          <p className="page-header-subtitle" style={{ color: 'var(--caanma-text-muted)', margin: '0.25rem 0 0 0' }}>Módulo de ventas y cortes de caja</p>
         </div>
-        <div className="page-header-actions flex items-center gap-3">
+        <div className="page-header-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <button 
             onClick={downloadExcel}
             disabled={isExporting}
-            className="btn-secondary h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold inline-flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs transition-all disabled:opacity-50"
+            className="btn-secondary"
+            style={{ 
+              backgroundColor: 'white', 
+              border: '1px solid var(--caanma-border)', 
+              color: 'var(--caanma-text)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem',
+              cursor: isExporting ? 'not-allowed' : 'pointer'
+            }}
             onMouseEnter={e => { if (!isExporting) e.currentTarget.style.backgroundColor='#f8fafc'; }}
             onMouseLeave={e => { if (!isExporting) e.currentTarget.style.backgroundColor='white'; }}
           >

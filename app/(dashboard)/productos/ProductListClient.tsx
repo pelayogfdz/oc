@@ -438,7 +438,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     <div style={{ fontFamily: 'var(--font-geist-sans)' }}>
       {/* Header section identical to Caanma */}
       <div className="page-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h1 className="page-header-title text-2xl font-black text-slate-900 tracking-tight" style={{ margin: 0 }}>Productos e Inventario</h1>
+        <h1 className="page-header-title" style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>Productos e Inventario</h1>
         <div className="page-header-actions" style={{ display: 'flex', gap: '0.75rem' }}>
           <button
             onClick={handleSync}
@@ -470,7 +470,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
         />
       )}
       {/* Toolbar and Always-Visible Filters */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5 mb-6 flex flex-col gap-4">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
         
         {/* Main Search Bar */}
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -481,7 +481,16 @@ export default function ProductListClient({ initialProducts, branchId, categorie
               placeholder="Buscar por nombre, SKU o código de barras..." 
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full h-11 pl-10 pr-10 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-100/50 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all shadow-2xs"
+              style={{ 
+                padding: '0.75rem 1rem 0.75rem 2.5rem', 
+                width: '100%', 
+                borderRadius: '8px', 
+                border: '1px solid #cbd5e1', 
+                backgroundColor: 'white', 
+                fontSize: '1rem',
+                outline: 'none',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
             />
             <button 
               onClick={() => setShowScanner(true)}
@@ -536,7 +545,21 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             </button>
             {showSortMenu && (
               <div 
-                className="absolute top-full left-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-50 min-w-[220px] flex flex-col py-1.5 overflow-hidden"
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  marginTop: '0.5rem',
+                  backgroundColor: 'white',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                  zIndex: 50,
+                  minWidth: '220px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  padding: '0.5rem 0'
+                }}
               >
                 {[
                   { label: 'Nombre: A - Z', field: 'name', order: 'asc' },
@@ -601,7 +624,17 @@ export default function ProductListClient({ initialProducts, branchId, categorie
               <button 
                 type="button"
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className={`h-11 px-4 rounded-xl border font-semibold text-xs sm:text-sm inline-flex items-center gap-2 shadow-2xs transition-all cursor-pointer ${showAdvancedFilters ? 'bg-purple-50 border-purple-300 text-purple-700' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'}`}>
+                style={{ 
+                  display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                  backgroundColor: showAdvancedFilters ? '#eff6ff' : 'white', 
+                  border: `1px solid ${showAdvancedFilters ? 'var(--caanma-primary)' : '#cbd5e1'}`, 
+                  color: showAdvancedFilters ? 'var(--caanma-primary)' : 'var(--caanma-text)',
+                  padding: '0.75rem 1rem', 
+                  borderRadius: '8px', 
+                  fontWeight: '500', 
+                  cursor: 'pointer',
+                  fontSize: '0.95rem'
+                }}>
                 <Filter size={18} /> {showAdvancedFilters ? 'Ocultar Filtros' : 'Filtros'}
                 {count > 0 && (
                   <span style={{ 
@@ -624,7 +657,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
         {showAdvancedFilters && (
           <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Categoría</label>
+            <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Categoría</label>
             <SearchableFilterSelect
               value={filterCategory}
               onChange={setFilterCategory}
@@ -637,16 +670,16 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Filtrar por Status</label>
-            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-700 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 min-w-[150px] shadow-2xs">
+            <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Filtrar por Status</label>
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
               <option value="ALL">Todos los Status</option>
               <option value="ACTIVE">Activos</option>
               <option value="INACTIVE">Inactivos / Eliminados</option>
             </select>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Filtrar por Stock</label>
-            <select value={filterStock} onChange={e => setFilterStock(e.target.value)} className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-700 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 min-w-[150px] shadow-2xs">
+            <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Filtrar por Stock</label>
+            <select value={filterStock} onChange={e => setFilterStock(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
               <option value="ALL">Todas las existencias</option>
               <option value="IN_STOCK">Con Stock</option>
               <option value="LOW_STOCK">Bajo Stock</option>
@@ -655,15 +688,15 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             </select>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Filtrar por Imagen</label>
-            <select value={filterImage} onChange={e => setFilterImage(e.target.value)} className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-700 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 min-w-[150px] shadow-2xs">
+            <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Filtrar por Imagen</label>
+            <select value={filterImage} onChange={e => setFilterImage(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
               <option value="ALL">Con y sin imagen</option>
               <option value="WITH_IMAGE">Con imagen</option>
               <option value="WITHOUT_IMAGE">Sin imagen</option>
             </select>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Filtrar por Marca</label>
+            <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Filtrar por Marca</label>
             <SearchableFilterSelect
               value={filterBrand}
               onChange={setFilterBrand}
@@ -676,8 +709,8 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tipo</label>
-            <select value={filterType} onChange={e => setFilterType(e.target.value)} className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-700 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 min-w-[150px] shadow-2xs">
+            <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Tipo</label>
+            <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
               <option value="ALL">Productos y Servicios</option>
               <option value="PRODUCT">Solo Productos</option>
               <option value="SERVICE">Solo Servicios</option>
@@ -685,7 +718,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
           </div>
           {/* Resurtible Filter */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Resurtido</label>
+            <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Resurtido</label>
             <select 
               value={filterRestockable} 
               onChange={e => setFilterRestockable(e.target.value)} 
@@ -729,7 +762,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             </select>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Rango de Precio ($)</label>
+            <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Rango de Precio ($)</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <input 
                 type="number" 
@@ -775,14 +808,14 @@ export default function ProductListClient({ initialProducts, branchId, categorie
 
       <div style={{ opacity: isSearching ? 0.5 : 1, transition: 'opacity 0.2s' }}>
         {selectedIds.length > 0 && (
-          <div className="mb-4 p-3.5 bg-purple-50 border border-purple-200/80 rounded-2xl flex justify-between items-center shadow-2xs">
-            <span className="text-purple-900 font-bold text-sm">{selectedIds.length} productos seleccionados</span>
+          <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: '#1e3a8a', fontWeight: '500' }}>{selectedIds.length} productos seleccionados</span>
             <button 
               onClick={() => {
                 const url = `/productos/etiquetas?ids=${selectedIds.join(',')}`;
                 window.open(url, '_blank', 'width=400,height=600');
               }}
-              className="btn-primary rounded-xl text-xs font-bold px-4 py-2 shadow-sm"
+              style={{ backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
             >
               Imprimir Etiquetas Seleccionadas
             </button>
@@ -799,7 +832,18 @@ export default function ProductListClient({ initialProducts, branchId, categorie
         />
 
         {/* Premium Pagination Footer */}
-        <div className="mt-6 flex justify-between items-center flex-wrap gap-4 bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
+        <div style={{ 
+          marginTop: '1.5rem', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          flexWrap: 'wrap', 
+          gap: '1rem',
+          backgroundColor: '#f8fafc',
+          padding: '0.75rem 1.25rem',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
           {/* Left Side: Range Info */}
           <div style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: '500' }}>
             {sortedProducts.length === 0 ? (

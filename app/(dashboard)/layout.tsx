@@ -111,7 +111,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </DesktopSidebarWrapper>
           <div className="dashboard-content-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
             <Header />
-            <main className="dashboard-main flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto min-w-0 bg-slate-50/60">
+            <main className="dashboard-main" style={{ flex: 1, padding: '1.25rem 1.5rem', overflowY: 'auto', minWidth: 0 }}>
               <SubscriptionGuard status={subscriptionStatus} role={userRole} isSuperAdmin={isSuperAdmin}>
                 {children}
               </SubscriptionGuard>

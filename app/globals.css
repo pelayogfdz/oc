@@ -25,12 +25,12 @@
   --caanma-sidebar-bg: #ffffff;
   --caanma-sidebar-hover: #f1f5f9;
   --caanma-sidebar-text: #64748b;
-  --caanma-sidebar-text-active: #7c3aed;
-  --caanma-primary: #7c3aed; 
-  --caanma-primary-hover: #6d28d9;
-  --caanma-text: #0f172a;
-  --caanma-text-muted: #64748b;
-  --caanma-border: #e2e8f0;
+  --caanma-sidebar-text-active: #8b5cf6;
+  --caanma-primary: #8b5cf6; 
+  --caanma-primary-hover: #7c3aed;
+  --caanma-text: #334155;
+  --caanma-text-muted: #94a3b8;
+  --caanma-border: #f1f5f9;
   --caanma-card-bg: #ffffff;
   
   --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
@@ -78,46 +78,39 @@ button {
 .btn-primary, button.btn-primary {
   background-color: var(--caanma-primary, #7c3aed) !important;
   color: #ffffff !important;
-  padding: 0.6rem 1.25rem;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 0.875rem;
-  letter-spacing: -0.01em;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
   border: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 1px 2px rgba(124, 58, 237, 0.2), 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .btn-primary:hover, button.btn-primary:hover {
   background-color: var(--caanma-primary-hover, #6d28d9) !important;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.25), 0 2px 4px -2px rgba(124, 58, 237, 0.15);
+  color: #ffffff !important;
 }
 
 .btn-secondary, button.btn-secondary {
-  background-color: #ffffff !important;
+  background-color: #f1f5f9 !important;
   color: #334155 !important;
-  border: 1px solid #e2e8f0 !important;
-  padding: 0.6rem 1.25rem;
-  border-radius: 12px;
+  border: 1px solid #cbd5e1 !important;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
   font-weight: 600;
-  font-size: 0.875rem;
-  letter-spacing: -0.01em;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
 }
 
 .btn-secondary:hover, button.btn-secondary:hover {
-  background-color: #f8fafc !important;
-  border-color: #cbd5e1 !important;
+  background-color: #e2e8f0 !important;
   color: #0f172a !important;
 }
 
@@ -143,15 +136,24 @@ button {
   background-color: #5b21b6 !important;
 }
 
+.page-header-actions a,
+.page-header-actions button {
+  color: #ffffff;
+}
+
+.page-header-actions a span,
+.page-header-actions button span {
+  color: #ffffff;
+}
+
 .card {
   background-color: var(--caanma-card-bg);
   border: 1px solid var(--caanma-border);
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   max-width: 100%;
   overflow-x: auto; /* Gracefully scroll contents horizontally on overflow (e.g. big tables) on desktop! */
-  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .table-responsive {
