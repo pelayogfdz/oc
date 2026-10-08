@@ -24,7 +24,8 @@ const getPaymentMethodLabel = (method: string) => {
     'DEPOSIT': 'Depósito',
     'OTHER': 'Otro',
     'CHECK': 'Cheque',
-    'CHEQUE': 'Cheque'
+    'CHEQUE': 'Cheque',
+    'UBER_EATS': 'Uber Eats'
   };
   return mapping[method] || method || 'Efectivo';
 };
@@ -1087,16 +1088,18 @@ export default function VentasHistoryClient({
       const rows = res.sales.map((sale: any) => {
         const meliCached = extractMeliStatus(sale.notes);
         const meliLabel = meliCached ? `${meliCached} (Mercado Libre)` : (sale.notes?.includes('Mercado Libre') ? 'Mercado Libre' : null);
+        const isUber = (sale.notes && (sale.notes.includes('Uber') || sale.notes.includes('UBER') || sale.notes.includes('uber'))) || sale.paymentMethod === 'UBER_EATS' || (sale.folio && sale.folio.startsWith('UB-'));
+        const uberLabel = isUber ? (sale.status === 'CANCELLED' ? 'Cancelado (Uber Eats)' : sale.status === 'COMPLETED' ? 'Entregado (Uber Eats)' : 'En Preparación (Uber Eats)') : null;
         return [
           sale.folio || sale.id.slice(0, 8).toUpperCase(),
           formatDateCompact(sale.createdAt, timezone),
           sale.customer ? sale.customer.name : 'Público en General',
           sale.invoiceFolio || sale.invoiceId || '-',
           sale.branch ? sale.branch.name : '-',
-          sale.user ? sale.user.name : '-',
+          isUber ? 'UBER EATS' : (sale.user ? sale.user.name : '-'),
           getPaymentMethodLabel(sale.paymentMethod),
           sale.total,
-          meliLabel || (sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status)
+          meliLabel || uberLabel || (sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status)
         ];
       });
       exportToExcel(headers, rows, 'Historial_de_Ventas');
@@ -1109,30 +1112,16 @@ export default function VentasHistoryClient({
 
   return (
     <div>
-      <div className="page-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="page-header-container flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="page-header-title" style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Historial de Ventas</h1>
-          <p className="page-header-subtitle" style={{ color: 'var(--caanma-text-muted)', margin: 0 }}>Módulo de ventas y cortes de caja</p>
+          <h1 className="page-header-title text-2xl font-black text-slate-900 tracking-tight" style={{ margin: 0 }}>Historial de Ventas</h1>
+          <p className="page-header-subtitle text-xs sm:text-sm text-slate-500 font-medium mt-1">Módulo de ventas y cortes de caja</p>
         </div>
-        <div className="page-header-actions" style={{ display: 'flex', gap: '0.75rem' }}>
+        <div className="page-header-actions flex items-center gap-3">
           <button 
             onClick={downloadExcel}
             disabled={isExporting}
-            className="btn-secondary"
-            style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '0.5rem', 
-              padding: '0.75rem 1.5rem', 
-              borderRadius: '8px', 
-              fontWeight: 'bold', 
-              cursor: isExporting ? 'not-allowed' : 'pointer', 
-              border: '1px solid var(--caanma-border)', 
-              backgroundColor: 'white', 
-              color: '#334155', 
-              transition: 'all 0.2s',
-              opacity: isExporting ? 0.7 : 1
-            }}
+            className="btn-secondary h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold inline-flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs transition-all disabled:opacity-50"
             onMouseEnter={e => { if (!isExporting) e.currentTarget.style.backgroundColor='#f8fafc'; }}
             onMouseLeave={e => { if (!isExporting) e.currentTarget.style.backgroundColor='white'; }}
           >
@@ -1201,21 +1190,11 @@ export default function VentasHistoryClient({
 
       {/* Filters Section */}
       <div 
-        className={`filters-section-grid ${showFiltersMobile ? 'mobile-show' : ''}`}
-        style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
-          gap: '1rem', 
-          marginBottom: '1.5rem', 
-          padding: '1.25rem', 
-          backgroundColor: '#f8fafc', 
-          borderRadius: '12px', 
-          border: '1px solid var(--caanma-border)' 
-        }}
+        className={`filters-section-grid bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5 mb-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 ${showFiltersMobile ? 'mobile-show' : ''}`}
       >
         {/* Date Filter: Start */}
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
+          <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
             <Calendar size={14} /> Fecha Inicio
           </label>
           <input 
@@ -1225,13 +1204,13 @@ export default function VentasHistoryClient({
               setFilterStartDate(e.target.value);
               updateUrlParams({ startDate: e.target.value, page: '1' });
             }} 
-            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-700 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 shadow-2xs transition-all" 
           />
         </div>
 
         {/* Date Filter: End */}
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
+          <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
             <Calendar size={14} /> Fecha Fin
           </label>
           <input 
@@ -1241,13 +1220,13 @@ export default function VentasHistoryClient({
               setFilterEndDate(e.target.value);
               updateUrlParams({ endDate: e.target.value, page: '1' });
             }} 
-            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-700 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 shadow-2xs transition-all" 
           />
         </div>
 
         {/* Folio/ID Venta Filter */}
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
+          <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
             <Tag size={14} /> Folio / Ticket
           </label>
           <input 
@@ -1261,13 +1240,13 @@ export default function VentasHistoryClient({
               }
             }}
             onBlur={() => updateUrlParams({ folio: filterFolio, page: '1' })}
-            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-700 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 shadow-2xs transition-all" 
           />
         </div>
 
         {/* Client Filter */}
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
+          <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
             <User size={14} /> Cliente
           </label>
           <input 
@@ -1281,13 +1260,13 @@ export default function VentasHistoryClient({
               }
             }}
             onBlur={() => updateUrlParams({ client: filterClient, page: '1' })}
-            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-700 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 shadow-2xs transition-all" 
           />
         </div>
 
         {/* CFDI Filter */}
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
+          <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
             <Receipt size={14} /> Factura CFDI
           </label>
           <input 
@@ -1301,13 +1280,13 @@ export default function VentasHistoryClient({
               }
             }}
             onBlur={() => updateUrlParams({ cfdi: filterCfdi, page: '1' })}
-            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-700 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 shadow-2xs transition-all" 
           />
         </div>
 
         {/* Product Filter */}
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
+          <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
             <Package size={14} /> Producto
           </label>
           <input 
@@ -1321,13 +1300,13 @@ export default function VentasHistoryClient({
               }
             }}
             onBlur={() => updateUrlParams({ product: filterProduct, page: '1' })}
-            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-700 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 shadow-2xs transition-all" 
           />
         </div>
 
         {/* Seller Filter */}
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
+          <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
             <User size={14} /> Vendedor
           </label>
           <select 
@@ -1336,7 +1315,7 @@ export default function VentasHistoryClient({
               setFilterUser(e.target.value);
               updateUrlParams({ userId: e.target.value, page: '1' });
             }} 
-            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }}
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-700 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 shadow-2xs transition-all"
           >
             <option value="">Todos los vendedores</option>
             {users.map((u) => (
@@ -1347,7 +1326,7 @@ export default function VentasHistoryClient({
 
         {/* Branch Filter */}
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
+          <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
             <MapPin size={14} /> Sucursal
           </label>
           <select 
@@ -1357,7 +1336,7 @@ export default function VentasHistoryClient({
               updateUrlParams({ branchId: e.target.value, page: '1' });
             }} 
             disabled={currentBranch.id !== 'GLOBAL'}
-            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: currentBranch.id !== 'GLOBAL' ? '#f1f5f9' : 'white', fontSize: '0.9rem' }}
+            className={`w-full h-10 px-3 rounded-xl border border-slate-200 text-xs sm:text-sm font-medium text-slate-700 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 shadow-2xs transition-all ${currentBranch.id !== 'GLOBAL' ? 'bg-slate-100 cursor-not-allowed' : 'bg-white'}`}
           >
             {currentBranch.id === 'GLOBAL' ? (
               <>
@@ -1374,7 +1353,7 @@ export default function VentasHistoryClient({
 
         {/* Status Filter */}
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
+          <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
             <Tag size={14} /> Estado
           </label>
           <select 
@@ -1383,7 +1362,7 @@ export default function VentasHistoryClient({
               setFilterStatus(e.target.value);
               updateUrlParams({ status: e.target.value, page: '1' });
             }} 
-            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }}
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-700 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 shadow-2xs transition-all"
           >
             <option value="">Todos los estados</option>
             {statuses.map((status) => (
@@ -1396,7 +1375,7 @@ export default function VentasHistoryClient({
 
         {/* Payment Method Filter */}
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
+          <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
             <Receipt size={14} /> Método de Pago
           </label>
           <select 
@@ -1405,7 +1384,7 @@ export default function VentasHistoryClient({
               setFilterPaymentMethod(e.target.value);
               updateUrlParams({ paymentMethod: e.target.value, page: '1' });
             }} 
-            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }}
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-700 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 shadow-2xs transition-all"
           >
             <option value="">Todos los métodos</option>
             {salesPaymentMethods.map((pm) => (
@@ -1430,7 +1409,7 @@ export default function VentasHistoryClient({
         </div>
 
         {/* Pagination Bar (Top) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', backgroundColor: '#f8fafc', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+        <div className="flex items-center gap-3 bg-white px-3.5 py-2 rounded-xl border border-slate-200/90 shadow-2xs">
           <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
             Mostrando <strong>{totalCount > 0 ? (currentPage - 1) * pageSize + 1 : 0}</strong>-<strong>{Math.min(currentPage * pageSize, totalCount)}</strong> de <strong>{totalCount.toLocaleString()}</strong>
           </span>
@@ -1456,7 +1435,7 @@ export default function VentasHistoryClient({
         </div>
       </div>
 
-      <div className="card" style={{ padding: '0', overflow: 'visible', width: '100%', maxWidth: '100%', height: 'auto' }}>
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden w-full max-w-full">
         <div className="table-responsive">
           <style dangerouslySetInnerHTML={{__html: `
             @media (min-width: 769px) {
@@ -1574,12 +1553,26 @@ export default function VentasHistoryClient({
                       >
                         {sale.branch?.name || currentBranch.name}
                       </div>
-                      <div 
-                        title={`Vendió: ${sale.user.name}`} 
-                        style={{ fontSize: '0.72rem', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '110px' }}
-                      >
-                        Vendió: {sale.user.name}
-                      </div>
+                      {(() => {
+                        const isUber = (sale.notes && (sale.notes.includes('Uber') || sale.notes.includes('UBER') || sale.notes.includes('uber'))) || sale.paymentMethod === 'UBER_EATS' || (sale.folio && sale.folio.startsWith('UB-'));
+                        const sellerName = isUber ? 'UBER EATS' : (sale.user?.name || 'Usuario');
+                        return (
+                          <div 
+                            title={`Vendió: ${sellerName}`} 
+                            style={{ 
+                              fontSize: '0.72rem', 
+                              color: isUber ? '#15803d' : 'var(--caanma-text-muted)', 
+                              fontWeight: isUber ? '600' : 'normal',
+                              whiteSpace: 'nowrap', 
+                              overflow: 'hidden', 
+                              textOverflow: 'ellipsis', 
+                              maxWidth: '110px' 
+                            }}
+                          >
+                            Vendió: {sellerName}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </td>
                   <td data-label="Artículos" style={{ padding: '0.3rem 0.45rem', textAlign: 'right', color: 'var(--caanma-text-muted)', fontSize: '0.82rem' }}>
@@ -1597,6 +1590,7 @@ export default function VentasHistoryClient({
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', alignItems: 'center', justifyContent: 'center' }}>
                       {(() => {
                         const isMeli = (sale.notes && sale.notes.includes('Mercado Libre')) || sale.meliStatus || (sale.folio && sale.folio.startsWith('ML-'));
+                        const isUber = (sale.notes && (sale.notes.includes('Uber') || sale.notes.includes('UBER') || sale.notes.includes('uber'))) || sale.paymentMethod === 'UBER_EATS' || (sale.folio && sale.folio.startsWith('UB-'));
                         
                         if (isMeli) {
                           const meliInfo = meliStatuses[sale.id] || (sale.meliStatus ? { meliStatus: sale.meliStatus, badge: getMeliStatusBadgeConfig(sale.meliStatus) } : (extractMeliStatus(sale.notes) ? { meliStatus: extractMeliStatus(sale.notes)!, badge: getMeliStatusBadgeConfig(extractMeliStatus(sale.notes)!) } : null));
@@ -1635,6 +1629,47 @@ export default function VentasHistoryClient({
                                 lineHeight: '1.2'
                               }}>
                                 🛒 Mercado Libre
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        if (isUber) {
+                          const isCancelled = sale.status === 'CANCELLED';
+                          const isCompleted = sale.status === 'COMPLETED';
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', alignItems: 'center' }}>
+                              <span style={{ 
+                                padding: '0.15rem 0.45rem', 
+                                borderRadius: '12px', 
+                                fontSize: '0.72rem',
+                                fontWeight: 'bold',
+                                backgroundColor: isCancelled ? '#fee2e2' : isCompleted ? '#e6fcf0' : '#fef3c7',
+                                color: isCancelled ? '#991b1b' : isCompleted ? '#06C167' : '#b45309',
+                                border: `1px solid ${isCancelled ? '#fecaca' : isCompleted ? '#bbf7d0' : '#fde68a'}`,
+                                whiteSpace: 'nowrap',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                              }}>
+                                <span>{isCancelled ? '❌' : isCompleted ? '✅' : '⏳'}</span>
+                                <span>{isCancelled ? 'Cancelado' : isCompleted ? 'Entregado' : 'En Preparación'}</span>
+                              </span>
+                              <span style={{
+                                fontSize: '0.62rem',
+                                color: '#15803d',
+                                fontWeight: '700',
+                                backgroundColor: '#f0fdf4',
+                                border: '1px solid #bbf7d0',
+                                padding: '0.05rem 0.35rem',
+                                borderRadius: '6px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.15rem',
+                                lineHeight: '1.2'
+                              }}>
+                                🛵 Uber Eats
                               </span>
                             </div>
                           );
@@ -2712,12 +2747,27 @@ export default function VentasHistoryClient({
                     Fecha: {new Date(selectedSaleWithProducts.createdAt).toLocaleString()}
                   </p>
                   <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#475569' }}>
-                    Estado: <span style={{ 
-                      fontWeight: 'bold', 
-                      color: selectedSaleWithProducts.status === 'COMPLETED' ? '#166534' : selectedSaleWithProducts.status === 'CANCELLED' ? '#991b1b' : '#b45309' 
-                    }}>
-                      {selectedSaleWithProducts.status === 'COMPLETED' ? 'Venta Concluida' : selectedSaleWithProducts.status === 'CANCELLED' ? 'Cancelada' : selectedSaleWithProducts.status}
-                    </span>
+                    Estado: {(() => {
+                      const isSelectedUber = (selectedSaleWithProducts.notes && (selectedSaleWithProducts.notes.includes('Uber') || selectedSaleWithProducts.notes.includes('UBER') || selectedSaleWithProducts.notes.includes('uber'))) || selectedSaleWithProducts.paymentMethod === 'UBER_EATS' || (selectedSaleWithProducts.folio && selectedSaleWithProducts.folio.startsWith('UB-'));
+                      if (isSelectedUber) {
+                        return (
+                          <span style={{ 
+                            fontWeight: 'bold', 
+                            color: selectedSaleWithProducts.status === 'COMPLETED' ? '#06C167' : selectedSaleWithProducts.status === 'CANCELLED' ? '#991b1b' : '#b45309' 
+                          }}>
+                            🛵 Uber Eats — {selectedSaleWithProducts.status === 'COMPLETED' ? 'Entregado' : selectedSaleWithProducts.status === 'CANCELLED' ? 'Cancelado' : 'En Preparación'}
+                          </span>
+                        );
+                      }
+                      return (
+                        <span style={{ 
+                          fontWeight: 'bold', 
+                          color: selectedSaleWithProducts.status === 'COMPLETED' ? '#166534' : selectedSaleWithProducts.status === 'CANCELLED' ? '#991b1b' : '#b45309' 
+                        }}>
+                          {selectedSaleWithProducts.status === 'COMPLETED' ? 'Venta Concluida' : selectedSaleWithProducts.status === 'CANCELLED' ? 'Cancelada' : selectedSaleWithProducts.status}
+                        </span>
+                      );
+                    })()}
                   </p>
                 </div>
               </div>

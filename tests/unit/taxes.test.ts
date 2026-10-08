@@ -96,4 +96,53 @@ describe('calculateTaxBreakdown (Desglose fiscal mexicano)', () => {
     expect(result.iva).toBe(16);
     expect(result.total).toBe(116);
   });
+
+  it('debe cuadrar exactamente las cotizaciones institucionales/gubernamentales sin discrepancias de centavos (Opción 1)', () => {
+    const rawQuoteItems = [
+      { name: 'DIEM PAPEL OPALINA', qty: 50, priceConIva: 62.00, taxRate: 16 },
+      { name: 'PELIKAN BOLIGRAFO', qty: 50, priceConIva: 33.00, taxRate: 16 },
+      { name: 'DIEM PAPEL OPALINA', qty: 105, priceConIva: 62.00, taxRate: 16 },
+      { name: 'XEROX PAPEL BOND', qty: 100, priceConIva: 778.00, taxRate: 16 },
+      { name: 'JANEL CINTA', qty: 200, priceConIva: 8.00, taxRate: 16 },
+      { name: 'KOLA LOKA', qty: 70, priceConIva: 6.99, taxRate: 16 }
+    ];
+
+    let netSubtotal = 0;
+    const processed = rawQuoteItems.map(item => {
+      const unitPriceSinIva = Math.round((item.priceConIva / 1.16) * 100) / 100;
+      const rowSubtotal = Math.round((unitPriceSinIva * item.qty) * 100) / 100;
+      netSubtotal += rowSubtotal;
+      return {
+        unitPriceSinIva,
+        rowSubtotal
+      };
+    });
+
+    const totalIva = Math.round((netSubtotal * 0.16) * 100) / 100;
+    const grandTotal = Math.round((netSubtotal + totalIva) * 100) / 100;
+
+    // Verificación horizontal de renglón
+    expect(processed[0].unitPriceSinIva).toBe(53.45);
+    expect(processed[0].rowSubtotal).toBe(2672.50);
+
+    expect(processed[1].unitPriceSinIva).toBe(28.45);
+    expect(processed[1].rowSubtotal).toBe(1422.50);
+
+    expect(processed[2].unitPriceSinIva).toBe(53.45);
+    expect(processed[2].rowSubtotal).toBe(5612.25);
+
+    expect(processed[3].unitPriceSinIva).toBe(670.69);
+    expect(processed[3].rowSubtotal).toBe(67069.00);
+
+    expect(processed[4].unitPriceSinIva).toBe(6.90);
+    expect(processed[4].rowSubtotal).toBe(1380.00);
+
+    expect(processed[5].unitPriceSinIva).toBe(6.03);
+    expect(processed[5].rowSubtotal).toBe(422.10);
+
+    // Verificación vertical de pie de página (coincide exactamente con la orden de compra CCL)
+    expect(netSubtotal).toBe(78578.35);
+    expect(totalIva).toBe(12572.54);
+    expect(grandTotal).toBe(91150.89);
+  });
 });

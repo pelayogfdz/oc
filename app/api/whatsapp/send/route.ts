@@ -10,9 +10,20 @@ export async function POST(request: Request) {
     }
 
     const data = await request.json();
-    const { phone, message, prospectId } = data;
+    const { phone, message, prospectId, media } = data;
 
-    if (!phone || !message || !prospectId) {
+    let effectiveMessage = (message || "").trim();
+    if (!effectiveMessage && media) {
+      if (media.mimetype?.startsWith('image/')) {
+        effectiveMessage = "📎 [Imagen]";
+      } else if (media.filename) {
+        effectiveMessage = `📎 [Documento: ${media.filename}]`;
+      } else {
+        effectiveMessage = "📎 [Archivo]";
+      }
+    }
+
+    if (!phone || !effectiveMessage || !prospectId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
     // Verify that the prospect belongs to the current tenant to ensure isolation
@@ -30,22 +41,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Access denied to this prospect" }, { status: 403 });
     }
 
-    // Deduplication check: if an identical message was queued for this prospect in the last 10 seconds, reuse it
-    const recentDuplicate = await prisma.whatsAppMessage.findFirst({
-      where: {
-        prospectId,
-        body: message,
-        isFromMe: true,
-        createdAt: {
-          gte: new Date(Date.now() - 10000)
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+    // Deduplication check: only for plain text messages, not when media is being sent
+    if (!media) {
+      const recentDuplicate = await prisma.whatsAppMessage.findFirst({
+        where: {
+          prospectId,
+          body: effectiveMessage,
+          isFromMe: true,
+          createdAt: {
+            gte: new Date(Date.now() - 10000)
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
 
-    if (recentDuplicate) {
-      console.log(`[WHATSAPP PROXY] Ignored duplicate message submission for prospect ${prospectId}`);
-      return NextResponse.json({ success: true, messageId: recentDuplicate.id, duplicatePrevented: true });
+      if (recentDuplicate) {
+        console.log(`[WHATSAPP PROXY] Ignored duplicate message submission for prospect ${prospectId}`);
+        return NextResponse.json({ success: true, messageId: recentDuplicate.id, duplicatePrevented: true });
+      }
     }
 
     // we insert the message into the database with messageId = null.
@@ -53,7 +66,7 @@ export async function POST(request: Request) {
     const newMessage = await prisma.whatsAppMessage.create({
       data: {
         prospectId,
-        body: message,
+        body: effectiveMessage,
         isFromMe: true,
         messageId: null, // Marks this as pending to be sent by the microservice
         timestamp: new Date(),
@@ -75,10 +88,10 @@ export async function POST(request: Request) {
         branchId: prospect.branchId,
         prospectId: prospect.id,
         phone: prospect.phone,
-        message: message,
+        message: message || '',
         pendingMessageId: newMessage.id,
         tenantId: user.tenantId,
-        media: data.media
+        media: media || data.media
       })
     }).catch((err) => {
       console.error("[WHATSAPP PROXY] Immediate send error:", err);

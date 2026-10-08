@@ -114,22 +114,13 @@ export default async function Header() {
     : visibleBranches;
 
   return (
-    <header className="dashboard-header" style={{
-      height: '64px',
-      backgroundColor: 'var(--caanma-card-bg)',
-      borderBottom: '1px solid var(--caanma-border)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 1rem',
-      flexShrink: 0
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+    <header className="dashboard-header h-16 bg-white border-b border-slate-200/90 px-4 sm:px-6 flex items-center justify-between flex-shrink-0 shadow-2xs z-20">
+      <div className="flex items-center gap-3">
         <MobileMenuToggle />
         <DesktopMenuToggle />
         <HeaderTitle />
       </div>
-      <div className="header-right-section" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div className="header-right-section flex items-center gap-3">
         <HeaderNetworkStatus />
         {showGlobalSearch && (
           <div className="desktop-only-header-item">
@@ -141,42 +132,29 @@ export default async function Header() {
         {showIAButton && (
           <Link 
             href="/ia" 
-            className="desktop-only-header-item header-ia-link"
+            className="desktop-only-header-item inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/80 hover:bg-blue-100 transition-all"
           >
-            <Sparkles size={14} style={{ color: '#3b82f6' }} />
+            <Sparkles size={14} className="text-blue-600" />
             <span>IA</span>
           </Link>
         )}
 
-        <div className="header-user-controls" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div className="header-user-controls flex items-center gap-3">
           {currentUser && (
             <div className="header-branch-selector-wrapper">
               <BranchSelector branches={finalOptions} currentBranchId={currentBranch?.id || ''} />
             </div>
           )}
           
-          <div className="header-user-info" style={{ textAlign: 'right' }}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.4rem' }}>
-              <span style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: '500' }}>{currentUser?.name || 'Usuario'}</span>
-              <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>|</span>
+          <div className="header-user-info text-right">
+            <div className="flex items-center justify-end gap-1.5">
+              <span className="text-xs font-bold text-slate-800">{currentUser?.name || 'Usuario'}</span>
+              <span className="text-slate-300 text-xs">|</span>
               <LogoutButton />
             </div>
           </div>
           
-          <div className="header-user-avatar" style={{ 
-            width: '32px', 
-            height: '32px', 
-            borderRadius: '50%', 
-            backgroundColor: 'var(--caanma-primary)', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            fontWeight: '700', 
-            fontSize: '0.8rem',
-            color: 'white',
-            flexShrink: 0,
-            boxShadow: '0 0 0 2px #fff, 0 0 0 3px var(--caanma-primary)'
-          }}>
+          <div className="header-user-avatar w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-sm shadow-purple-500/20 ring-2 ring-purple-100">
             {currentUser?.name ? currentUser.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'US'}
           </div>
         </div>

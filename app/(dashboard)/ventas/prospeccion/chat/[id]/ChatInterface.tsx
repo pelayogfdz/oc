@@ -29,6 +29,186 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
   const [previewModalImage, setPreviewModalImage] = useState<string | null>(null);
   const [previewModalPdf, setPreviewModalPdf] = useState<{ url: string; filename: string; rawData?: string } | null>(null);
 
+  // Media Modal para previsualización antes de enviar (pegar Ctrl+V, drag & drop, selector)
+  const [mediaModal, setMediaModal] = useState<{
+    name: string;
+    type: string;
+    base64: string;
+    caption: string;
+    size?: number;
+  } | null>(null);
+
+  // Drag & drop state
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Citar / responder mensaje
+  const [replyingTo, setReplyingTo] = useState<{
+    id: string;
+    messageId?: string;
+    body: string;
+    sender: string;
+    isFromMe: boolean;
+  } | null>(null);
+
+  // Reacciones a mensajes
+  const [reactions, setReactions] = useState<Record<string, string[]>>({});
+  const [activeReactionMenuMsgId, setActiveReactionMenuMsgId] = useState<string | null>(null);
+
+  // Feedback de copiado
+  const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
+
+  // Zoom y Rotación en Lightbox
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [rotationDeg, setRotationDeg] = useState(0);
+
+  // Hover en mensajes
+  const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null);
+
+  // Cargar reacciones desde localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && prospect?.id) {
+      try {
+        const saved = localStorage.getItem(`whatsapp_reactions_${prospect.id}`);
+        if (saved) setReactions(JSON.parse(saved));
+      } catch (e) {}
+    }
+  }, [prospect?.id]);
+
+  const toggleReaction = (msgId: string, emoji: string) => {
+    setReactions(prev => {
+      const current = prev[msgId] || [];
+      const exists = current.includes(emoji);
+      const updated = exists ? current.filter(e => e !== emoji) : [...current, emoji];
+      const next = { ...prev, [msgId]: updated };
+      try {
+        localStorage.setItem(`whatsapp_reactions_${prospect.id}`, JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+    setActiveReactionMenuMsgId(null);
+  };
+
+  const handleCopyMessage = (msgId: string, text: string) => {
+    const clean = text.replace(/^>\s*\[(?:Cita|Respuesta):[\s\S]*?\]\s*\n\n/, '').trim();
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(clean);
+    }
+    setCopiedMsgId(msgId);
+    setTimeout(() => setCopiedMsgId(null), 2000);
+  };
+
+  const getDateChipLabel = (timestamp: string) => {
+    const d = new Date(timestamp);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const msgDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diffDays = Math.round((today.getTime() - msgDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Hoy";
+    if (diffDays === 1) return "Ayer";
+    if (diffDays < 7) {
+      const dayName = d.toLocaleDateString('es-MX', { weekday: 'long' });
+      return dayName.charAt(0).toUpperCase() + dayName.slice(1);
+    }
+    return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
+
+  // Safe formatting renderer for WhatsApp text
+  const renderWhatsAppFormattedText = (rawText: string) => {
+    if (!rawText) return null;
+
+    let quotePart: { author: string; text: string } | null = null;
+    let remainingText = rawText;
+
+    const quoteMatch = rawText.match(/^>\s*\[(?:Cita|Respuesta):\s*([^:]+):\s*([\s\S]*?)\]\s*\n\n([\s\S]*)$/);
+    if (quoteMatch) {
+      quotePart = { author: quoteMatch[1].trim(), text: quoteMatch[2].trim() };
+      remainingText = quoteMatch[3];
+    }
+
+    const formatTokens = (text: string) => {
+      const regex = /(https?:\/\/[^\s]+|\*[^*\n\r]+\*|_[^_\n\r]+_|~[^~\n\r]+~|```[^`]+```)/g;
+      const parts = text.split(regex);
+
+      return parts.map((part, index) => {
+        if (!part) return null;
+
+        if (part.startsWith('http://') || part.startsWith('https://')) {
+          return (
+            <a
+              key={index}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#0284c7', textDecoration: 'underline', wordBreak: 'break-all' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {part}
+            </a>
+          );
+        }
+
+        if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
+          return <strong key={index} style={{ fontWeight: 'bold' }}>{part.slice(1, -1)}</strong>;
+        }
+
+        if (part.startsWith('_') && part.endsWith('_') && part.length > 2) {
+          return <em key={index} style={{ fontStyle: 'italic' }}>{part.slice(1, -1)}</em>;
+        }
+
+        if (part.startsWith('~') && part.endsWith('~') && part.length > 2) {
+          return <del key={index}>{part.slice(1, -1)}</del>;
+        }
+
+        if (part.startsWith('```') && part.endsWith('```') && part.length > 6) {
+          return (
+            <code
+              key={index}
+              style={{
+                backgroundColor: 'rgba(0,0,0,0.06)',
+                padding: '2px 4px',
+                borderRadius: '4px',
+                fontFamily: 'monospace',
+                fontSize: '0.85em'
+              }}
+            >
+              {part.slice(3, -3)}
+            </code>
+          );
+        }
+
+        return part;
+      });
+    };
+
+    return (
+      <>
+        {quotePart && (
+          <div
+            style={{
+              backgroundColor: 'rgba(0, 0, 0, 0.05)',
+              borderLeft: '4px solid #10b981',
+              borderRadius: '4px',
+              padding: '4px 8px',
+              marginBottom: '6px',
+              fontSize: '0.8rem',
+              userSelect: 'none'
+            }}
+          >
+            <div style={{ fontWeight: 'bold', color: '#047857', fontSize: '0.75rem' }}>
+              {quotePart.author}
+            </div>
+            <div style={{ color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {quotePart.text}
+            </div>
+          </div>
+        )}
+        {formatTokens(remainingText)}
+      </>
+    );
+  };
+
+
   const parseMediaMsg = (body: string) => {
     if (!body) return { isMedia: false, type: "", caption: "", filename: "", base64Data: "", isPdf: false };
 
@@ -625,19 +805,114 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     }
   }, [isSending]);
 
-  const sendMessage = async (e?: React.FormEvent, customText?: string) => {
+  // Escape key handler for modals
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (previewModalImage) setPreviewModalImage(null);
+        if (previewModalPdf) setPreviewModalPdf(null);
+        if (mediaModal) setMediaModal(null);
+        if (activeReactionMenuMsgId) setActiveReactionMenuMsgId(null);
+        if (showEmojiPicker) setShowEmojiPicker(false);
+        if (showPresets) setShowPresets(false);
+        if (showLocationPicker) setShowLocationPicker(false);
+        if (showContactPicker) setShowContactPicker(false);
+        if (showAIOptions) setShowAIOptions(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewModalImage, previewModalPdf, mediaModal, activeReactionMenuMsgId, showEmojiPicker, showPresets, showLocationPicker, showContactPicker, showAIOptions]);
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.indexOf("image") !== -1) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            setMediaModal({
+              name: file.name || `captura_${Date.now()}.png`,
+              type: file.type || 'image/png',
+              base64: reader.result as string,
+              caption: inputText.trim(),
+              size: file.size
+            });
+            setInputText("");
+          };
+          reader.readAsDataURL(file);
+          return;
+        }
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      setMediaModal({
+        name: file.name,
+        type: file.type || 'application/octet-stream',
+        base64: reader.result as string,
+        caption: inputText.trim(),
+        size: file.size
+      });
+      setInputText("");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const sendMessage = async (e?: React.FormEvent, customText?: string, explicitMedia?: { name: string; type: string; base64: string }) => {
     if (e) e.preventDefault();
     if (isSendingRef.current || isSending) return;
-    const messageText = customText || inputText;
+    
+    const fileToSend = explicitMedia || attachment;
+    const messageText = customText !== undefined ? customText : inputText;
+
+    let quotePrefix = "";
+    if (replyingTo) {
+      quotePrefix = `> [Cita: ${replyingTo.sender}: ${replyingTo.body.replace(/\n/g, ' ').substring(0, 80)}]\n\n`;
+      setReplyingTo(null);
+    }
     
     let bodyText = messageText;
-    if (attachment) {
-      const isPdf = attachment.type.includes('pdf') || attachment.name.toLowerCase().endsWith('.pdf');
-      const mediaTag = isPdf ? `📎 [Documento: ${attachment.name}]` : attachment.type.startsWith('image/') ? '📎 [Imagen]' : `📎 [Archivo: ${attachment.name}]`;
+    if (fileToSend) {
+      const isPdf = fileToSend.type.includes('pdf') || fileToSend.name.toLowerCase().endsWith('.pdf');
+      const mediaTag = isPdf ? `📎 [Documento: ${fileToSend.name}]` : fileToSend.type.startsWith('image/') ? '📎 [Imagen]' : `📎 [Archivo: ${fileToSend.name}]`;
       bodyText = mediaTag + (messageText.trim() ? ": " + messageText.trim() : "");
     }
 
-    if (!bodyText.trim() && !attachment) return;
+    if (quotePrefix) {
+      bodyText = quotePrefix + bodyText;
+    }
+
+    if (!bodyText.trim() && !fileToSend) return;
 
     isSendingRef.current = true;
     setIsSending(true);
@@ -652,19 +927,18 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     setMessages(prev => [...prev, tempMsg]);
 
     // Optimistically cache file payload for instant preview/download
-    if (attachment) {
+    if (fileToSend) {
       setDownloadedMedia(prev => ({
         ...prev,
         [tempMsgId]: {
-          data: attachment.base64.split(';base64,')[1] || attachment.base64,
-          mimetype: attachment.type,
-          filename: attachment.name
+          data: fileToSend.base64.split(';base64,')[1] || fileToSend.base64,
+          mimetype: fileToSend.type,
+          filename: fileToSend.name
         }
       }));
     }
 
-    if (!customText) setInputText("");
-    const fileToSend = attachment;
+    if (customText === undefined) setInputText("");
     setAttachment(null); // Clear attachment preview
     setTimeout(() => {
       inputRef.current?.focus();
@@ -676,7 +950,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phone: prospect.phone,
-          message: messageText,
+          message: (quotePrefix ? quotePrefix : '') + (messageText || ''),
           prospectId: prospect.id,
           media: fileToSend ? {
             data: fileToSend.base64,
@@ -724,6 +998,18 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     }
   };
 
+  const handleSendMediaModal = async () => {
+    if (!mediaModal) return;
+    const file = {
+      name: mediaModal.name,
+      type: mediaModal.type,
+      base64: mediaModal.base64
+    };
+    const caption = mediaModal.caption;
+    setMediaModal(null);
+    await sendMessage(undefined, caption, file);
+  };
+
   // Emojis Click Handler
   const handleEmojiClick = (emoji: string) => {
     setInputText(prev => prev + emoji);
@@ -736,18 +1022,22 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     setShowPresets(false);
   };
 
-  // File Upload Handler
+  // File Upload Handler (Abre MediaModal de previsualización)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = () => {
-      setAttachment({
+      setMediaModal({
         name: file.name,
-        type: file.type,
-        base64: reader.result as string
+        type: file.type || 'application/octet-stream',
+        base64: reader.result as string,
+        caption: inputText.trim(),
+        size: file.size
       });
+      setInputText("");
+      e.target.value = "";
     };
     reader.readAsDataURL(file);
   };
@@ -793,329 +1083,555 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+    <div 
+      onPaste={handlePaste}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
+    >
+      {/* Overlay Drag & Drop */}
+      {isDragging && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundColor: 'rgba(240, 253, 244, 0.92)',
+          border: '3px dashed #16a34a',
+          zIndex: 60,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#166534',
+          pointerEvents: 'none'
+        }}>
+          <div style={{ fontSize: '3.5rem', marginBottom: '0.5rem' }}>📷</div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 'bold' }}>Suelta la imagen o archivo aquí</div>
+          <div style={{ fontSize: '0.875rem', color: '#15803d', marginTop: '0.25rem' }}>Podrás previsualizarla y escribir un pie de foto antes de enviar</div>
+        </div>
+      )}
 
       {/* Mensajes Area */}
-      <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', backgroundRepeat: 'repeat', backgroundColor: '#e5e7eb', backgroundBlendMode: 'overlay' }}>
+      <div style={{ flex: 1, padding: '1.25rem 1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', backgroundRepeat: 'repeat', backgroundColor: '#e5e7eb', backgroundBlendMode: 'overlay' }}>
         {messages.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem', backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: '12px', alignSelf: 'center', color: '#64748b' }}>
-            No hay mensajes aún. ¡Envía el primero!
+          <div style={{ textAlign: 'center', padding: '2rem', backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: '12px', alignSelf: 'center', color: '#64748b', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💬</div>
+            <div style={{ fontWeight: '600' }}>No hay mensajes aún en esta conversación.</div>
+            <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.25rem' }}>Escribe o pega una imagen con Ctrl+V para comenzar</div>
           </div>
         ) : (
-          messages.map(msg => {
+          messages.map((msg, idx) => {
             const displayBody = formatChatDisplayBody(msg.body || '');
+            const currentDateStr = new Date(msg.timestamp).toDateString();
+            const prevDateStr = idx > 0 ? new Date(messages[idx - 1].timestamp).toDateString() : null;
+            const showDateChip = currentDateStr !== prevDateStr;
+
             if (isSystemNotice(msg.body || '')) {
               return (
-                <div 
-                  key={msg.id}
-                  style={{
-                    alignSelf: 'center',
-                    backgroundColor: '#fef9c3',
-                    border: '1px solid #fef08a',
-                    padding: '0.45rem 0.9rem',
-                    borderRadius: '8px',
-                    maxWidth: '85%',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                    textAlign: 'center',
-                    fontSize: '0.78rem',
-                    color: '#854d0e',
-                    margin: '0.25rem 0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0.2rem'
-                  }}
-                >
-                  <span style={{ fontWeight: 500, lineHeight: 1.4 }}>{displayBody}</span>
-                  <span style={{ fontSize: '0.65rem', color: '#a16207' }}>
-                    {new Date(msg.timestamp).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </span>
+                <div key={msg.id || idx} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                  {showDateChip && (
+                    <div style={{ alignSelf: 'center', margin: '0.5rem 0', zIndex: 1 }}>
+                      <span style={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.94)',
+                        color: '#475569',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '16px',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+                        border: '1px solid #e2e8f0',
+                        textTransform: 'capitalize'
+                      }}>
+                        {getDateChipLabel(msg.timestamp)}
+                      </span>
+                    </div>
+                  )}
+                  <div 
+                    style={{
+                      alignSelf: 'center',
+                      backgroundColor: '#fef9c3',
+                      border: '1px solid #fef08a',
+                      padding: '0.45rem 0.9rem',
+                      borderRadius: '8px',
+                      maxWidth: '85%',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                      textAlign: 'center',
+                      fontSize: '0.78rem',
+                      color: '#854d0e',
+                      margin: '0.25rem 0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.2rem'
+                    }}
+                  >
+                    <span style={{ fontWeight: 500, lineHeight: 1.4 }}>{displayBody}</span>
+                    <span style={{ fontSize: '0.65rem', color: '#a16207' }}>
+                      {new Date(msg.timestamp).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
                 </div>
               );
             }
 
+            const mediaInfo = parseMediaMsg(displayBody);
+            const isDownloaded = !!downloadedMedia[msg.messageId || msg.id];
+            const isLoading = !!loadingMedia[msg.messageId || msg.id];
+            const mediaData = downloadedMedia[msg.messageId || msg.id];
+
+            const directBase64 = mediaInfo.base64Data || (mediaData ? mediaData.data : undefined);
+            const isImage = mediaInfo.type === "Imagen" || (mediaData && mediaData.mimetype.startsWith('image/')) || !!mediaInfo.base64Data;
+            const imgSrc = mediaData ? `data:${mediaData.mimetype};base64,${mediaData.data}` : (mediaInfo.base64Data ? (mediaInfo.base64Data.startsWith('data:') ? mediaInfo.base64Data : `data:image/jpeg;base64,${mediaInfo.base64Data}`) : null);
+            const isPdf = mediaInfo.isPdf || mediaInfo.type === "Documento" || mediaInfo.filename.toLowerCase().endsWith('.pdf') || (mediaData && mediaData.mimetype === 'application/pdf');
+            const isOnlyImage = isImage && !mediaInfo.caption;
+
             return (
-              <div 
-                key={msg.id} 
-                style={{
-                  alignSelf: msg.isFromMe ? 'flex-end' : 'flex-start',
-                  backgroundColor: msg.isFromMe ? '#dcf8c6' : '#ffffff',
-                  padding: '0.75rem 1rem',
-                  borderRadius: '8px',
-                  borderTopRightRadius: msg.isFromMe ? '0' : '8px',
-                  borderTopLeftRadius: !msg.isFromMe ? '0' : '8px',
-                  maxWidth: '75%',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                  position: 'relative'
-                }}
-              >
-                <div style={{ fontSize: '0.95rem', color: '#1e293b', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
-                  {displayBody && displayBody.includes("📍 *Ubicación Compartida") ? (
-                    <div style={{ 
-                      border: '1px solid #cbd5e1', 
-                      borderRadius: '8px', 
-                      overflow: 'hidden', 
-                      backgroundColor: '#f8fafc',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                      marginTop: '0.25rem',
-                      width: '100%',
-                      minWidth: '240px',
-                      maxWidth: '280px'
+              <div key={msg.id || idx} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                {showDateChip && (
+                  <div style={{ alignSelf: 'center', margin: '0.65rem 0', zIndex: 1 }}>
+                    <span style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.94)',
+                      color: '#475569',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '16px',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+                      border: '1px solid #e2e8f0',
+                      textTransform: 'capitalize'
                     }}>
-                      <div style={{ 
-                        height: '100px', 
-                        backgroundImage: `url("https://maps.googleapis.com/maps/api/staticmap?center=${getCoordsFromMessage(displayBody)}&zoom=14&size=280x100&sensor=false&markers=color:red%7C${getCoordsFromMessage(displayBody)}")`,
-                        backgroundColor: '#e2e8f0', 
-                        backgroundSize: 'cover', 
-                        backgroundPosition: 'center',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#475569',
-                        fontWeight: 'bold',
-                        fontSize: '0.8rem'
-                      }}>
-                        🗺️ Vista de Mapa {tenantName}
-                      </div>
-                      <div style={{ padding: '0.65rem', fontSize: '0.825rem', color: '#334155' }}>
-                        {displayBody}
-                      </div>
-                    </div>
-                  ) : displayBody && displayBody.includes("👤 *Tarjeta de Contacto") ? (
-                    <div style={{ 
-                      border: '1px solid #cbd5e1', 
-                      borderRadius: '8px', 
-                      backgroundColor: '#f0fdf4',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                      marginTop: '0.25rem',
-                      width: '100%',
-                      minWidth: '240px',
-                      maxWidth: '280px',
-                      padding: '0.65rem',
-                      borderLeft: '4px solid #22c55e'
+                      {getDateChipLabel(msg.timestamp)}
+                    </span>
+                  </div>
+                )}
+
+                <div 
+                  id={`msg-${msg.id}`}
+                  onMouseEnter={() => setHoveredMsgId(msg.id)}
+                  onMouseLeave={() => {
+                    setHoveredMsgId(null);
+                    if (activeReactionMenuMsgId === msg.id) {
+                      // leave reaction menu open until clicked outside or selected
+                    }
+                  }}
+                  style={{
+                    alignSelf: msg.isFromMe ? 'flex-end' : 'flex-start',
+                    backgroundColor: msg.isFromMe ? '#d9fdd3' : '#ffffff',
+                    padding: isOnlyImage ? '3px' : '0.55rem 0.85rem',
+                    borderRadius: '8px',
+                    borderTopRightRadius: msg.isFromMe ? '0' : '8px',
+                    borderTopLeftRadius: !msg.isFromMe ? '0' : '8px',
+                    maxWidth: isImage ? '340px' : '75%',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                    position: 'relative',
+                    marginBottom: (reactions[msg.id] && reactions[msg.id].length > 0) ? '0.6rem' : '0.15rem'
+                  }}
+                >
+                  {/* Hover Actions Toolbar */}
+                  {hoveredMsgId === msg.id && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '-16px',
+                      right: msg.isFromMe ? '8px' : 'auto',
+                      left: msg.isFromMe ? 'auto' : '8px',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '16px',
+                      padding: '2px 6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                      border: '1px solid #e2e8f0',
+                      zIndex: 10
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem', borderBottom: '1px solid #bbf7d0', paddingBottom: '0.25rem' }}>
-                        <span style={{ fontSize: '1.1rem' }}>👤</span>
-                        <strong style={{ color: '#166534', fontSize: '0.825rem' }}>Contacto de Ventas</strong>
-                      </div>
-                      <div style={{ fontSize: '0.8rem', color: '#1e293b' }}>
-                        {displayBody}
-                      </div>
+                      <button
+                        type="button"
+                        title="Reaccionar con emoji"
+                        onClick={() => setActiveReactionMenuMsgId(activeReactionMenuMsgId === msg.id ? null : msg.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', padding: '2px 4px', borderRadius: '4px' }}
+                      >
+                        😀
+                      </button>
+                      <button
+                        type="button"
+                        title="Responder / Citar mensaje"
+                        onClick={() => {
+                          const quoteContent = mediaInfo.isMedia 
+                            ? (isImage ? '📷 Foto' : `📄 ${mediaInfo.filename || 'Archivo'}`) 
+                            : displayBody;
+                          setReplyingTo({
+                            id: msg.id,
+                            messageId: msg.messageId,
+                            body: quoteContent,
+                            sender: msg.isFromMe ? 'Tú' : (prospect.name || 'Cliente'),
+                            isFromMe: msg.isFromMe
+                          });
+                          inputRef.current?.focus();
+                        }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', padding: '2px 4px', borderRadius: '4px' }}
+                      >
+                        ↩️
+                      </button>
+                      <button
+                        type="button"
+                        title={copiedMsgId === msg.id ? "¡Copiado!" : "Copiar texto"}
+                        onClick={() => handleCopyMessage(msg.id, displayBody)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', padding: '2px 4px', borderRadius: '4px', color: copiedMsgId === msg.id ? '#16a34a' : '#475569' }}
+                      >
+                        {copiedMsgId === msg.id ? '✓' : '📋'}
+                      </button>
                     </div>
-                  ) : parseMediaMsg(displayBody).isMedia ? (
-                    (() => {
-                      const mediaInfo = parseMediaMsg(displayBody);
-                      const isDownloaded = !!downloadedMedia[msg.messageId || msg.id];
-                      const isLoading = !!loadingMedia[msg.messageId || msg.id];
-                      const mediaData = downloadedMedia[msg.messageId || msg.id];
+                  )}
 
-                      const directBase64 = mediaInfo.base64Data || (mediaData ? mediaData.data : undefined);
-                      const isImage = mediaInfo.type === "Imagen" || (mediaData && mediaData.mimetype.startsWith('image/')) || !!mediaInfo.base64Data;
-                      const imgSrc = mediaData ? `data:${mediaData.mimetype};base64,${mediaData.data}` : (mediaInfo.base64Data ? (mediaInfo.base64Data.startsWith('data:') ? mediaInfo.base64Data : `data:image/jpeg;base64,${mediaInfo.base64Data}`) : null);
-                      const isPdf = mediaInfo.isPdf || mediaInfo.type === "Documento" || mediaInfo.filename.toLowerCase().endsWith('.pdf') || (mediaData && mediaData.mimetype === 'application/pdf');
-
-                      let mediaEmoji = "📎";
-                      if (isImage) mediaEmoji = "🖼️";
-                      else if (mediaInfo.type === "Video") mediaEmoji = "🎥";
-                      else if (mediaInfo.type === "Audio") mediaEmoji = "🎵";
-                      else if (isPdf) mediaEmoji = "📄";
-                      else if (mediaInfo.type === "Documento") mediaEmoji = "📄";
-
-                      return (
-                        <div 
+                  {/* Quick Reactions Menu Popup */}
+                  {activeReactionMenuMsgId === msg.id && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '-44px',
+                      right: msg.isFromMe ? '8px' : 'auto',
+                      left: msg.isFromMe ? 'auto' : '8px',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '24px',
+                      padding: '4px 8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
+                      border: '1px solid #cbd5e1',
+                      zIndex: 25
+                    }}>
+                      {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(emoji => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => toggleReaction(msg.id, emoji)}
                           style={{
-                            border: isPdf ? '1px solid #fca5a5' : '1px solid #cbd5e1',
-                            borderRadius: '10px',
-                            overflow: 'hidden',
-                            backgroundColor: isPdf ? '#fff8f8' : '#f8fafc',
-                            boxShadow: '0 2px 5px rgba(0,0,0,0.06)',
-                            marginTop: '0.25rem',
-                            width: '100%',
-                            minWidth: '250px',
-                            maxWidth: '300px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            transition: 'all 0.2s ease-in-out'
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '1.2rem',
+                            padding: '2px',
+                            borderRadius: '50%',
+                            transition: 'transform 0.15s'
                           }}
+                          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.25)'}
+                          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
                         >
-                          <div style={{ padding: '0.65rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.65rem', borderBottom: (imgSrc || mediaInfo.caption) ? '1px solid #e2e8f0' : 'none' }}>
-                            {isPdf ? (
-                              <div style={{
-                                width: '38px',
-                                height: '38px',
-                                borderRadius: '6px',
-                                backgroundColor: '#ef4444',
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Message Content */}
+                  <div style={{ fontSize: '0.92rem', color: '#1e293b', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                    {displayBody && displayBody.includes("📍 *Ubicación Compartida") ? (
+                      <div style={{ 
+                        border: '1px solid #cbd5e1', 
+                        borderRadius: '8px', 
+                        overflow: 'hidden', 
+                        backgroundColor: '#f8fafc',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                        marginTop: '0.25rem',
+                        width: '100%',
+                        minWidth: '240px',
+                        maxWidth: '280px'
+                      }}>
+                        <div style={{ 
+                          height: '100px', 
+                          backgroundImage: `url("https://maps.googleapis.com/maps/api/staticmap?center=${getCoordsFromMessage(displayBody)}&zoom=14&size=280x100&sensor=false&markers=color:red%7C${getCoordsFromMessage(displayBody)}")`,
+                          backgroundColor: '#e2e8f0', 
+                          backgroundSize: 'cover', 
+                          backgroundPosition: 'center',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#475569',
+                          fontWeight: 'bold',
+                          fontSize: '0.8rem'
+                        }}>
+                          🗺️ Vista de Mapa {tenantName}
+                        </div>
+                        <div style={{ padding: '0.65rem', fontSize: '0.825rem', color: '#334155' }}>
+                          {displayBody}
+                        </div>
+                      </div>
+                    ) : displayBody && displayBody.includes("👤 *Tarjeta de Contacto") ? (
+                      <div style={{ 
+                        border: '1px solid #cbd5e1', 
+                        borderRadius: '8px', 
+                        backgroundColor: '#f0fdf4',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                        marginTop: '0.25rem',
+                        width: '100%',
+                        minWidth: '240px',
+                        maxWidth: '280px',
+                        padding: '0.65rem',
+                        borderLeft: '4px solid #22c55e'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem', borderBottom: '1px solid #bbf7d0', paddingBottom: '0.25rem' }}>
+                          <span style={{ fontSize: '1.1rem' }}>👤</span>
+                          <strong style={{ color: '#166534', fontSize: '0.825rem' }}>Contacto de Ventas</strong>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#1e293b' }}>
+                          {displayBody}
+                        </div>
+                      </div>
+                    ) : mediaInfo.isMedia ? (
+                      <div>
+                        {/* Native WhatsApp Image Display */}
+                        {isImage && (imgSrc || directBase64) ? (
+                          <div style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden', backgroundColor: '#0f172a' }}>
+                            <img 
+                              src={imgSrc || `data:image/jpeg;base64,${directBase64}`}
+                              alt={mediaInfo.filename || "Imagen"}
+                              onClick={() => handleViewMedia(msg.messageId || msg.id, mediaInfo.filename || 'imagen.jpg', directBase64, 'image/jpeg')}
+                              style={{
+                                width: '100%',
+                                maxHeight: '320px',
+                                objectFit: 'cover',
+                                display: 'block',
+                                cursor: 'zoom-in',
+                                transition: 'opacity 0.2s'
+                              }}
+                              title="Clic para ver en pantalla grande"
+                            />
+                            {/* Hover Direct Download Button in corner of Image */}
+                            <button
+                              type="button"
+                              title="Descargar imagen a la PC"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownloadMedia(msg.messageId || msg.id, mediaInfo.filename || 'imagen.jpg', directBase64, 'image/jpeg');
+                              }}
+                              style={{
+                                position: 'absolute',
+                                top: '6px',
+                                right: '6px',
+                                backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: '30px',
+                                height: '30px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: 'white',
-                                fontWeight: 'bold',
-                                fontSize: '0.75rem',
-                                flexShrink: 0,
-                                boxShadow: '0 2px 4px rgba(239,68,68,0.3)'
-                              }}>
-                                PDF
-                              </div>
-                            ) : (
-                              <span style={{ fontSize: '1.5rem' }}>{mediaEmoji}</span>
-                            )}
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                              <span style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={mediaInfo.filename}>
-                                {mediaInfo.filename ? mediaInfo.filename : (isPdf ? 'Documento.pdf' : `${mediaInfo.type} de WhatsApp`)}
-                              </span>
-                              <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                                {isLoading ? '⏳ Descargando de WhatsApp...' : isPdf ? 'Documento PDF' : (isDownloaded || directBase64) ? '✅ Listo para ver/guardar' : '📥 Archivo multimedia'}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Render Image Thumbnail directly if available */}
-                          {imgSrc && (
-                            <div 
-                              onClick={() => handleViewMedia(msg.messageId || msg.id, mediaInfo.filename || 'imagen.jpg', directBase64, 'image/jpeg')}
-                              style={{ 
-                                width: '100%', 
-                                maxHeight: '220px', 
-                                overflow: 'hidden', 
-                                borderBottom: mediaInfo.caption ? '1px solid #e2e8f0' : 'none', 
-                                display: 'flex', 
-                                justifyContent: 'center', 
-                                alignItems: 'center', 
-                                backgroundColor: '#0f172a',
-                                cursor: 'zoom-in',
-                                position: 'relative'
+                                cursor: 'pointer',
+                                fontSize: '0.85rem',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                                transition: 'background-color 0.2s'
                               }}
-                              title="Click para ver en pantalla grande"
+                              onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.9)'}
+                              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.65)'}
                             >
-                              <img 
-                                src={imgSrc} 
-                                alt={mediaInfo.filename || 'Imagen de WhatsApp'} 
-                                style={{ width: '100%', objectFit: 'contain', maxHeight: '220px' }} 
-                              />
+                              📥
+                            </button>
+
+                            {/* Timestamp overlay if image only (no caption) */}
+                            {isOnlyImage && (
                               <div style={{
                                 position: 'absolute',
                                 bottom: '6px',
                                 right: '6px',
-                                backgroundColor: 'rgba(0,0,0,0.7)',
+                                backgroundColor: 'rgba(0, 0, 0, 0.6)',
                                 color: 'white',
-                                borderRadius: '4px',
                                 padding: '2px 6px',
+                                borderRadius: '10px',
                                 fontSize: '0.65rem',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '3px'
+                                gap: '4px',
+                                backdropFilter: 'blur(2px)'
                               }}>
-                                🔍 Ver HD
+                                <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                {msg.isFromMe && (
+                                  <span style={{ display: 'flex', color: msg.status === 3 ? '#60a5fa' : '#cbd5e1' }}>
+                                    {msg.status === 0 && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
+                                    {msg.status === 1 && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>}
+                                    {(msg.status === 2 || msg.status === 3) && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="18 6 7 17 2 12"/><polyline points="22 6 11 17 9.5 15.5"/></svg>}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          /* Document / PDF Card */
+                          <div 
+                            style={{
+                              border: isPdf ? '1px solid #fca5a5' : '1px solid #cbd5e1',
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              backgroundColor: isPdf ? '#fff8f8' : '#f8fafc',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                              marginTop: '0.2rem',
+                              width: '100%',
+                              minWidth: '240px',
+                              maxWidth: '300px',
+                              display: 'flex',
+                              flexDirection: 'column'
+                            }}
+                          >
+                            <div style={{ padding: '0.6rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                              {isPdf ? (
+                                <div style={{
+                                  width: '36px',
+                                  height: '36px',
+                                  borderRadius: '6px',
+                                  backgroundColor: '#ef4444',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: 'white',
+                                  fontWeight: 'bold',
+                                  fontSize: '0.75rem',
+                                  flexShrink: 0
+                                }}>
+                                  PDF
+                                </div>
+                              ) : (
+                                <div style={{
+                                  width: '36px',
+                                  height: '36px',
+                                  borderRadius: '6px',
+                                  backgroundColor: '#3b82f6',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: 'white',
+                                  fontWeight: 'bold',
+                                  fontSize: '0.75rem',
+                                  flexShrink: 0
+                                }}>
+                                  DOC
+                                </div>
+                              )}
+                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                <span style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={mediaInfo.filename}>
+                                  {mediaInfo.filename || (isPdf ? 'Documento.pdf' : 'Archivo adjunto')}
+                                </span>
+                                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                                  {isLoading ? '⏳ Descargando de WhatsApp...' : isPdf ? 'Documento PDF' : 'Archivo adjunto'}
+                                </span>
                               </div>
                             </div>
-                          )}
 
-                          {mediaInfo.caption && (
-                            <div style={{ padding: '0.5rem 0.75rem', fontSize: '0.8rem', color: '#334155', borderBottom: '1px solid #e2e8f0' }}>
-                              {mediaInfo.caption}
+                            {/* Dual Ver & Descargar Buttons */}
+                            <div style={{ display: 'flex', borderTop: '1px solid #e2e8f0', backgroundColor: '#f1f5f9' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleViewMedia(msg.messageId || msg.id, mediaInfo.filename || 'documento.pdf', directBase64, isPdf ? 'application/pdf' : undefined)}
+                                disabled={isLoading}
+                                style={{
+                                  flex: 1,
+                                  padding: '0.5rem 0.4rem',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 'bold',
+                                  color: isLoading ? '#94a3b8' : '#2563eb',
+                                  textAlign: 'center',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '0.25rem',
+                                  backgroundColor: 'transparent',
+                                  border: 'none',
+                                  borderRight: '1px solid #cbd5e1',
+                                  cursor: isLoading ? 'default' : 'pointer'
+                                }}
+                              >
+                                👁️ Ver {isPdf ? 'PDF' : 'archivo'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadMedia(msg.messageId || msg.id, mediaInfo.filename || 'documento.pdf', directBase64, isPdf ? 'application/pdf' : undefined)}
+                                disabled={isLoading}
+                                style={{
+                                  flex: 1,
+                                  padding: '0.5rem 0.4rem',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 'bold',
+                                  color: isLoading ? '#94a3b8' : '#16a34a',
+                                  textAlign: 'center',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '0.25rem',
+                                  backgroundColor: 'transparent',
+                                  border: 'none',
+                                  cursor: isLoading ? 'default' : 'pointer'
+                                }}
+                              >
+                                📥 Guardar
+                              </button>
                             </div>
-                          )}
-
-                          {/* Action Buttons: Dual Ver & Guardar for PDF and documents */}
-                          <div style={{ display: 'flex', borderTop: (!imgSrc && !mediaInfo.caption) ? '1px solid #e2e8f0' : 'none', backgroundColor: '#f1f5f9' }}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!isLoading) {
-                                  handleViewMedia(
-                                    msg.messageId || msg.id, 
-                                    mediaInfo.filename || (isPdf ? 'documento.pdf' : mediaInfo.type.toLowerCase()),
-                                    directBase64,
-                                    isPdf ? 'application/pdf' : (isImage ? 'image/jpeg' : undefined)
-                                  );
-                                }
-                              }}
-                              disabled={isLoading}
-                              style={{
-                                flex: 1,
-                                padding: '0.55rem 0.4rem',
-                                fontSize: '0.78rem',
-                                fontWeight: 'bold',
-                                color: isLoading ? '#94a3b8' : '#2563eb',
-                                textAlign: 'center',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.25rem',
-                                backgroundColor: 'transparent',
-                                border: 'none',
-                                borderRight: '1px solid #cbd5e1',
-                                cursor: isLoading ? 'default' : 'pointer',
-                                transition: 'background-color 0.2s'
-                              }}
-                              onMouseEnter={e => { if (!isLoading) e.currentTarget.style.backgroundColor = '#e2e8f0'; }}
-                              onMouseLeave={e => { if (!isLoading) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                            >
-                              👁️ Ver {isPdf ? 'PDF' : isImage ? 'HD' : 'archivo'}
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!isLoading) {
-                                  handleDownloadMedia(
-                                    msg.messageId || msg.id, 
-                                    mediaInfo.filename || (isPdf ? 'documento.pdf' : mediaInfo.type.toLowerCase()),
-                                    directBase64,
-                                    isPdf ? 'application/pdf' : (isImage ? 'image/jpeg' : undefined)
-                                  );
-                                }
-                              }}
-                              disabled={isLoading}
-                              style={{
-                                flex: 1,
-                                padding: '0.55rem 0.4rem',
-                                fontSize: '0.78rem',
-                                fontWeight: 'bold',
-                                color: isLoading ? '#94a3b8' : '#16a34a',
-                                textAlign: 'center',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.25rem',
-                                backgroundColor: 'transparent',
-                                border: 'none',
-                                cursor: isLoading ? 'default' : 'pointer',
-                                transition: 'background-color 0.2s'
-                              }}
-                              onMouseEnter={e => { if (!isLoading) e.currentTarget.style.backgroundColor = '#e2e8f0'; }}
-                              onMouseLeave={e => { if (!isLoading) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                            >
-                              📥 Guardar
-                            </button>
                           </div>
-                        </div>
-                      );
-                    })()
-                  ) : (
-                    displayBody
+                        )}
+
+                        {/* Caption Text if Present */}
+                        {mediaInfo.caption && (
+                          <div style={{ padding: isImage ? '0.4rem 0.2rem 0.1rem 0.2rem' : '0.4rem 0', fontSize: '0.92rem', color: '#1e293b' }}>
+                            {renderWhatsAppFormattedText(mediaInfo.caption)}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      renderWhatsAppFormattedText(displayBody)
+                    )}
+                  </div>
+
+                  {/* Regular Message Timestamp & Status Ticks (hidden if only image) */}
+                  {!isOnlyImage && (
+                    <div style={{ fontSize: '0.65rem', color: '#94a3b8', textAlign: 'right', marginTop: '0.25rem', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.25rem' }}>
+                      {new Date(msg.timestamp).toLocaleString([], { hour: '2-digit', minute: '2-digit' })}
+                      {msg.isFromMe && (
+                        <span style={{ 
+                          display: 'flex', 
+                          color: msg.status === 3 ? '#3b82f6' : '#94a3b8' 
+                        }}>
+                          {msg.status === 0 && (
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                          )}
+                          {msg.status === 1 && (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          )}
+                          {(msg.status === 2 || msg.status === 3) && (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="18 6 7 17 2 12"/>
+                              <polyline points="22 6 11 17 9.5 15.5"/>
+                            </svg>
+                          )}
+                        </span>
+                      )}
+                    </div>
                   )}
-                </div>
-                <div style={{ fontSize: '0.65rem', color: '#94a3b8', textAlign: 'right', marginTop: '0.25rem', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.25rem' }}>
-                  {new Date(msg.timestamp).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  {msg.isFromMe && (
-                    <span style={{ 
-                      display: 'flex', 
-                      color: msg.status === 3 ? '#3b82f6' : '#94a3b8' 
-                    }}>
-                      {msg.status === 0 && (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                      )}
-                      {msg.status === 1 && (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                      )}
-                      {(msg.status === 2 || msg.status === 3) && (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="18 6 7 17 2 12"/>
-                          <polyline points="22 6 11 17 9.5 15.5"/>
-                        </svg>
-                      )}
-                    </span>
+
+                  {/* Message Reactions Badge */}
+                  {reactions[msg.id] && reactions[msg.id].length > 0 && (
+                    <div 
+                      onClick={() => setActiveReactionMenuMsgId(activeReactionMenuMsgId === msg.id ? null : msg.id)}
+                      title="Reacciones"
+                      style={{
+                        position: 'absolute',
+                        bottom: '-10px',
+                        left: msg.isFromMe ? 'auto' : '8px',
+                        right: msg.isFromMe ? '8px' : 'auto',
+                        backgroundColor: '#ffffff',
+                        borderRadius: '12px',
+                        padding: '1px 6px',
+                        fontSize: '0.75rem',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+                        border: '1px solid #e2e8f0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '2px',
+                        zIndex: 2,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {reactions[msg.id].map((emoji, eIdx) => (
+                        <span key={eIdx}>{emoji}</span>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
@@ -1134,285 +1650,65 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
         style={{ display: 'none' }}
       />
 
-      {/* Preview Attachment Block */}
-      {attachment && (
-        <div style={{ padding: '0.5rem 1rem', backgroundColor: '#f1f5f9', borderTop: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', gap: '0.75rem', animation: 'fadeIn 0.2s ease' }}>
-          {attachment.type.startsWith('image/') ? (
-            <img src={attachment.base64} alt="Preview" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #94a3b8' }} />
-          ) : (
-            <div style={{ width: '40px', height: '40px', backgroundColor: '#cbd5e1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>📎</div>
-          )}
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{attachment.name}</div>
-            <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Listo para enviar</div>
-          </div>
-          <button 
-            onClick={() => setAttachment(null)}
-            style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.25rem' }}
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
-      {/* Popups Panel Options */}
-      {/* Location Picker Popup */}
-      {showLocationPicker && (
-        <div style={{ position: 'absolute', bottom: '80px', left: '1rem', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '0.75rem', width: '320px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 30, maxHeight: '300px', overflowY: 'auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.4rem', marginBottom: '0.25rem' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>📍 Compartir Ubicación Sucursal:</span>
-            <button onClick={() => setShowLocationPicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#94a3b8' }}>✕</button>
-          </div>
-          {locations.map((loc, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => handleShareLocation(loc)}
-              style={{ 
-                textAlign: 'left', 
-                background: 'none', 
-                border: 'none', 
-                cursor: 'pointer', 
-                padding: '0.5rem', 
-                borderRadius: '8px', 
-                borderBottom: '1px solid #f1f5f9', 
-                display: 'flex', 
-                flexDirection: 'column',
-                gap: '0.1rem', 
-                transition: 'background-color 0.2s',
-                width: '100%'
-              }}
-              onMouseOver={evt => evt.currentTarget.style.backgroundColor='#f8fafc'}
-              onMouseOut={evt => evt.currentTarget.style.backgroundColor='transparent'}
-            >
-              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b' }}>{loc.name}</span>
-              <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '280px' }}>{loc.desc}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Contact Picker Popup */}
-      {showContactPicker && (
-        <div style={{ position: 'absolute', bottom: '80px', left: '1rem', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '0.75rem', width: '320px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 30, maxHeight: '300px', overflowY: 'auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.4rem', marginBottom: '0.25rem' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>👤 Compartir Contacto:</span>
-            <button onClick={() => setShowContactPicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#94a3b8' }}>✕</button>
-          </div>
-          {contacts.map((contact, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => handleShareContact(contact)}
-              style={{ 
-                textAlign: 'left', 
-                background: 'none', 
-                border: 'none', 
-                cursor: 'pointer', 
-                padding: '0.5rem', 
-                borderRadius: '8px', 
-                borderBottom: '1px solid #f1f5f9', 
-                display: 'flex', 
-                flexDirection: 'column',
-                gap: '0.1rem', 
-                transition: 'background-color 0.2s',
-                width: '100%'
-              }}
-              onMouseOver={evt => evt.currentTarget.style.backgroundColor='#f8fafc'}
-              onMouseOut={evt => evt.currentTarget.style.backgroundColor='transparent'}
-            >
-              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b' }}>{contact.label}</span>
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{contact.name} - {contact.title}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Emoji Picker Popup */}
-      {showEmojiPicker && (
-        <div style={{ position: 'absolute', bottom: '80px', left: '1rem', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '0.5rem', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 30 }}>
-          {emojis.map(e => (
-            <button 
-              key={e} 
-              onClick={() => handleEmojiClick(e)}
-              style={{ fontSize: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', borderRadius: '8px', transition: 'background-color 0.1s' }}
-              onMouseOver={evt => evt.currentTarget.style.backgroundColor='#f1f5f9'}
-              onMouseOut={evt => evt.currentTarget.style.backgroundColor='transparent'}
-            >
-              {e}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Preset Messages Picker Popup */}
-      {showPresets && (
-        <div style={{ position: 'absolute', bottom: '80px', left: '3rem', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '0.75rem', width: '330px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 30, maxHeight: '350px', overflowY: 'auto' }}>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.4rem', marginBottom: '0.25rem' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Plantillas Rápidas:</span>
-            {!isCreatingPreset && (
-              <button 
-                onClick={() => {
-                  setIsCreatingPreset(true);
-                  if (inputText.trim()) {
-                    setNewPresetText(inputText); // prefill with current draft!
-                  }
-                }}
-                style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', padding: '0.25rem 0.6rem', fontSize: '0.72rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem', transition: 'background-color 0.2s' }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor='#2563eb'}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor='#3b82f6'}
-              >
-                ➕ Nueva
-              </button>
-            )}
-          </div>
-
-          {/* Form to Create Custom Preset Inline */}
-          {isCreatingPreset ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.5rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', animation: 'fadeIn 0.2s ease' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Nueva Plantilla Personalizada</div>
-              <input
-                type="text"
-                placeholder="Título (ej: 👋 Saludo)"
-                value={newPresetTitle}
-                onChange={e => setNewPresetTitle(e.target.value)}
-                style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none' }}
-              />
-              <textarea
-                placeholder="Texto de la plantilla..."
-                value={newPresetText}
-                onChange={e => setNewPresetText(e.target.value)}
-                rows={3}
-                style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', resize: 'none', fontFamily: 'inherit' }}
-              />
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                <button
-                  onClick={() => setIsCreatingPreset(false)}
-                  style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '0.75rem', cursor: 'pointer', padding: '0.25rem' }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  disabled={!newPresetTitle.trim() || !newPresetText.trim()}
-                  onClick={() => handleSavePreset(newPresetTitle, newPresetText)}
-                  style={{ backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', padding: '0.25rem 0.6rem', fontSize: '0.75rem', fontWeight: 'bold', cursor: (!newPresetTitle.trim() || !newPresetText.trim()) ? 'not-allowed' : 'pointer', opacity: (!newPresetTitle.trim() || !newPresetText.trim()) ? 0.6 : 1 }}
-                >
-                  Guardar
-                </button>
+      {/* Input Area */}
+      <div style={{ padding: '0.75rem 1rem', backgroundColor: '#ffffff', borderTop: '1px solid var(--caanma-border)', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+        
+        {/* Reply Quote Banner */}
+        {replyingTo && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.45rem 0.85rem',
+            backgroundColor: '#f1f5f9',
+            borderLeft: `4px solid ${replyingTo.isFromMe ? '#16a34a' : '#2563eb'}`,
+            borderRadius: '8px',
+            marginBottom: '0.25rem',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            animation: 'fadeIn 0.15s ease'
+          }}>
+            <div style={{ flex: 1, minWidth: 0, marginRight: '0.5rem' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: replyingTo.isFromMe ? '#166534' : '#1d4ed8' }}>
+                ↩️ Respondiendo a {replyingTo.sender}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {replyingTo.body}
               </div>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              {presets.map((p, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => handlePresetClick(p.text)}
-                  style={{ 
-                    textAlign: 'left', 
-                    background: 'none', 
-                    border: 'none', 
-                    cursor: 'pointer', 
-                    padding: '0.5rem', 
-                    borderRadius: '8px', 
-                    borderBottom: '1px solid #f1f5f9', 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'flex-start',
-                    gap: '0.5rem', 
-                    transition: 'background-color 0.2s',
-                    position: 'relative'
-                  }}
-                  onMouseOver={evt => evt.currentTarget.style.backgroundColor='#f8fafc'}
-                  onMouseOut={evt => evt.currentTarget.style.backgroundColor='transparent'}
-                >
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.1rem', overflow: 'hidden' }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b' }}>{p.title}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '230px' }}>{p.text}</div>
-                  </div>
-                  <button
-                    onClick={(e) => handleDeletePreset(idx, e)}
-                    title="Eliminar plantilla"
-                    style={{ 
-                      background: 'none', 
-                      border: 'none', 
-                      color: '#94a3b8', 
-                      cursor: 'pointer', 
-                      fontSize: '0.85rem',
-                      padding: '0.1rem 0.25rem',
-                      borderRadius: '4px',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.color='#ef4444'; e.currentTarget.style.backgroundColor='#fee2e2'; }}
-                    onMouseLeave={e => { e.currentTarget.style.color='#94a3b8'; e.currentTarget.style.backgroundColor='transparent'; }}
-                  >
-                    🗑️
-                  </button>
-                </div>
-              ))}
+            <button
+              type="button"
+              onClick={() => setReplyingTo(null)}
+              title="Cancelar respuesta"
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem' }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
-              {/* Special Quick Option to save current draft if something is typed! */}
-              {inputText.trim() && (
-                <button
-                  onClick={() => {
-                    setIsCreatingPreset(true);
-                    setNewPresetText(inputText);
-                    setNewPresetTitle("");
-                  }}
-                  style={{ 
-                    marginTop: '0.5rem',
-                    textAlign: 'center',
-                    border: '1px dashed #3b82f6', 
-                    background: '#eff6ff',
-                    color: '#1d4ed8',
-                    cursor: 'pointer', 
-                    padding: '0.5rem', 
-                    borderRadius: '8px', 
-                    fontSize: '0.78rem',
-                    fontWeight: 'bold',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseOver={evt => evt.currentTarget.style.backgroundColor='#dbeafe'}
-                  onMouseOut={evt => evt.currentTarget.style.backgroundColor='#eff6ff'}
-                >
-                  💾 Convertir borrador actual en plantilla
-                </button>
-              )}
+        {/* Attachment Thumbnail if Selected via Old State */}
+        {attachment && (
+          <div style={{ padding: '0.5rem 1rem', backgroundColor: '#f1f5f9', borderTop: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', gap: '0.75rem', animation: 'fadeIn 0.2s ease', borderRadius: '8px' }}>
+            {attachment.type.startsWith('image/') ? (
+              <img src={attachment.base64} alt="Preview" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #94a3b8' }} />
+            ) : (
+              <div style={{ width: '40px', height: '40px', backgroundColor: '#cbd5e1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>📎</div>
+            )}
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{attachment.name}</div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Listo para enviar</div>
             </div>
-          )}
-        </div>
-      )}
+            <button 
+              onClick={() => setAttachment(null)}
+              style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.25rem' }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
-      {/* AI Assistant Options Popup */}
-      {showAIOptions && (
-        <div style={{ position: 'absolute', bottom: '80px', right: '1rem', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '0.75rem', width: '220px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 30 }}>
-          <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.25rem' }}>Tono del Asistente:</div>
-          <button 
-            onClick={() => handleAIRewrite('formal')} 
-            style={{ textAlign: 'left', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.5rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-          >
-            💼 Profesional y Formal
-          </button>
-          <button 
-            onClick={() => handleAIRewrite('friendly')} 
-            style={{ textAlign: 'left', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', borderRadius: '8px', padding: '0.5rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-          >
-            🤝 Cálido y Amigable
-          </button>
-          <button 
-            onClick={() => handleAIRewrite('sales')} 
-            style={{ textAlign: 'left', background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', borderRadius: '8px', padding: '0.5rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-          >
-            🔥 Persuasión y Venta
-          </button>
-        </div>
-      )}
-
-      {/* Input Area */}
-      <div style={{ padding: '0.75rem 1rem', backgroundColor: '#ffffff', borderTop: '1px solid var(--caanma-border)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        
         {/* Barra de Acciones / Herramientas */}
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.25rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.15rem', alignItems: 'center' }}>
           <button 
             onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowPresets(false); setShowAIOptions(false); }}
             title="Emojis" 
@@ -1470,7 +1766,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
               border: '1px solid #bbf7d0', 
               color: '#166534', 
               cursor: 'pointer', 
-              padding: '0.4rem 0.9rem', 
+              padding: '0.35rem 0.85rem', 
               borderRadius: '16px', 
               fontSize: '0.8rem', 
               fontWeight: 'bold', 
@@ -1509,7 +1805,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '0.5rem',
-            marginBottom: '0.5rem'
+            marginBottom: '0.25rem'
           }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               ⚠️ WhatsApp Desconectado en esta Sucursal. Vincula tu cuenta en el panel de configuración.
@@ -1548,7 +1844,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                 sendMessage();
               }
             }}
-            placeholder={whatsappStatus === 'CONNECTED' ? "Escribe un mensaje..." : "WhatsApp Desconectado. Vincula tu cuenta..."}
+            placeholder={whatsappStatus === 'CONNECTED' ? "Escribe un mensaje... (Ctrl+V para pegar imagen)" : "WhatsApp Desconectado. Vincula tu cuenta..."}
             style={{ 
               flex: 1, 
               padding: '0.75rem 1rem', 
@@ -1582,41 +1878,252 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
         </form>
       </div>
 
-      {/* Full-Screen Image Lightbox Preview Modal */}
-      {previewModalImage && (
+      {/* Media Send Modal (Previsualización antes de enviar con pie de foto) */}
+      {mediaModal && (
         <div 
-          onClick={() => setPreviewModalImage(null)}
+          onClick={() => setMediaModal(null)}
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            backgroundColor: 'rgba(11, 20, 26, 0.88)',
             zIndex: 9999,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1.5rem',
+            padding: '1rem',
             backdropFilter: 'blur(4px)'
           }}
         >
           <div 
             onClick={e => e.stopPropagation()}
             style={{
-              position: 'relative',
-              maxWidth: '90vw',
+              backgroundColor: '#1e293b',
+              borderRadius: '16px',
+              width: '95%',
+              maxWidth: '640px',
               maxHeight: '90vh',
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center',
-              backgroundColor: '#0f172a',
-              borderRadius: '12px',
-              padding: '1rem',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)',
+              overflow: 'hidden',
+              border: '1px solid #334155'
             }}
           >
-            <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <span style={{ color: '#f8fafc', fontWeight: 'bold', fontSize: '0.9rem' }}>🖼️ Vista Previa de Imagen (HD)</span>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {/* Modal Header */}
+            <div style={{ padding: '0.75rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155', backgroundColor: '#0f172a' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                <span style={{ fontSize: '1.25rem' }}>{mediaModal.type.startsWith('image/') ? '🖼️' : '📄'}</span>
+                <span style={{ color: 'white', fontWeight: 'bold', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {mediaModal.name}
+                </span>
+                {mediaModal.size && (
+                  <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>
+                    ({(mediaModal.size / 1024).toFixed(0)} KB)
+                  </span>
+                )}
+              </div>
+              <button 
+                type="button"
+                onClick={() => setMediaModal(null)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.2rem', padding: '0.2rem' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Preview Body */}
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.25rem', backgroundColor: '#0b141a', minHeight: '280px', maxHeight: '55vh', overflow: 'hidden' }}>
+              {mediaModal.type.startsWith('image/') ? (
+                <img 
+                  src={mediaModal.base64} 
+                  alt="Previsualización" 
+                  style={{ maxWidth: '100%', maxHeight: '50vh', objectFit: 'contain', borderRadius: '8px' }} 
+                />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', color: '#cbd5e1' }}>
+                  <span style={{ fontSize: '3.5rem' }}>📄</span>
+                  <span style={{ fontWeight: 'bold', fontSize: '1rem' }}>{mediaModal.name}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Caption and Send Footer */}
+            <div style={{ padding: '0.85rem 1.25rem', backgroundColor: '#1e293b', borderTop: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <input 
+                type="text"
+                autoFocus
+                placeholder="Añade un pie de foto... (Enter para enviar)"
+                value={mediaModal.caption}
+                onChange={e => setMediaModal({ ...mediaModal, caption: e.target.value })}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSendMediaModal();
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  borderRadius: '24px',
+                  border: '1px solid #475569',
+                  backgroundColor: '#0f172a',
+                  color: 'white',
+                  fontSize: '0.92rem',
+                  outline: 'none'
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleSendMediaModal}
+                disabled={isSending}
+                title="Enviar"
+                style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '50%',
+                  backgroundColor: '#25d366',
+                  color: 'white',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: isSending ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
+                  transition: 'background-color 0.2s',
+                  flexShrink: 0
+                }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1ebe57'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = '#25d366'}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'translateX(-1px) translateY(1px)' }}>
+                  <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Screen Image Lightbox Preview Modal con Zoom y Descarga Directa */}
+      {previewModalImage && (
+        <div 
+          onClick={() => setPreviewModalImage(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(11, 20, 26, 0.95)',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            backdropFilter: 'blur(6px)'
+          }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              width: '95vw',
+              maxWidth: '1200px',
+              height: '92vh',
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: '#0f172a',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+              border: '1px solid #1e293b'
+            }}
+          >
+            {/* Top Toolbar */}
+            <div style={{ 
+              width: '100%', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              padding: '0.75rem 1.25rem', 
+              backgroundColor: '#0b141a',
+              borderBottom: '1px solid #1e293b'
+            }}>
+              <span style={{ color: '#f8fafc', fontWeight: 'bold', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                🖼️ Vista Previa en Alta Definición
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                {/* Rotate Button */}
+                <button
+                  type="button"
+                  title="Rotar 90°"
+                  onClick={() => setRotationDeg(r => (r + 90) % 360)}
+                  style={{
+                    backgroundColor: '#1e293b',
+                    color: '#f8fafc',
+                    border: '1px solid #334155',
+                    borderRadius: '6px',
+                    padding: '0.35rem 0.65rem',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🔄 Rotar
+                </button>
+                {/* Zoom Out Button */}
+                <button
+                  type="button"
+                  title="Alejar (-)"
+                  onClick={() => setZoomLevel(z => Math.max(0.5, z - 0.25))}
+                  style={{
+                    backgroundColor: '#1e293b',
+                    color: '#f8fafc',
+                    border: '1px solid #334155',
+                    borderRadius: '6px',
+                    padding: '0.35rem 0.65rem',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ➖
+                </button>
+                <span style={{ color: '#94a3b8', fontSize: '0.75rem', minWidth: '40px', textAlign: 'center' }}>
+                  {Math.round(zoomLevel * 100)}%
+                </span>
+                {/* Zoom In Button */}
+                <button
+                  type="button"
+                  title="Acercar (+)"
+                  onClick={() => setZoomLevel(z => Math.min(3, z + 0.25))}
+                  style={{
+                    backgroundColor: '#1e293b',
+                    color: '#f8fafc',
+                    border: '1px solid #334155',
+                    borderRadius: '6px',
+                    padding: '0.35rem 0.65rem',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ➕
+                </button>
+                {/* Reset Zoom Button */}
+                <button
+                  type="button"
+                  title="Tamaño Original (100%)"
+                  onClick={() => { setZoomLevel(1); setRotationDeg(0); }}
+                  style={{
+                    backgroundColor: '#1e293b',
+                    color: '#f8fafc',
+                    border: '1px solid #334155',
+                    borderRadius: '6px',
+                    padding: '0.35rem 0.65rem',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  1:1
+                </button>
+                {/* Prominent Direct Download Button */}
                 <button
                   type="button"
                   onClick={() => {
@@ -1627,17 +2134,22 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                     color: 'white',
                     border: 'none',
                     borderRadius: '6px',
-                    padding: '0.4rem 0.85rem',
-                    fontSize: '0.8rem',
+                    padding: '0.4rem 0.95rem',
+                    fontSize: '0.825rem',
                     fontWeight: 'bold',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.35rem'
+                    gap: '0.4rem',
+                    boxShadow: '0 2px 4px rgba(22,163,74,0.3)',
+                    transition: 'background-color 0.2s'
                   }}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = '#15803d'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = '#16a34a'}
                 >
                   📥 Guardar en PC
                 </button>
+                {/* Close Button */}
                 <button
                   type="button"
                   onClick={() => setPreviewModalImage(null)}
@@ -1653,23 +2165,48 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    marginLeft: '0.5rem'
                   }}
                 >
                   ✕
                 </button>
               </div>
             </div>
-            <img 
-              src={previewModalImage} 
-              alt="Vista previa" 
-              style={{
-                maxWidth: '85vw',
-                maxHeight: '80vh',
-                objectFit: 'contain',
-                borderRadius: '8px'
+
+            {/* Image Canvas */}
+            <div 
+              onWheel={(e) => {
+                if (e.deltaY < 0) {
+                  setZoomLevel(z => Math.min(3, z + 0.15));
+                } else {
+                  setZoomLevel(z => Math.max(0.5, z - 0.15));
+                }
               }}
-            />
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'auto',
+                padding: '1.5rem',
+                backgroundColor: '#070b0e'
+              }}
+            >
+              <img 
+                src={previewModalImage} 
+                alt="Vista previa" 
+                style={{
+                  maxWidth: '85vw',
+                  maxHeight: '75vh',
+                  objectFit: 'contain',
+                  borderRadius: '8px',
+                  transform: `scale(${zoomLevel}) rotate(${rotationDeg}deg)`,
+                  transition: 'transform 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                }}
+              />
+            </div>
           </div>
         </div>
       )}

@@ -1209,6 +1209,10 @@ export async function searchProducts(
       include: { 
         variants: true, 
         prices: true, 
+        batches: {
+          where: { stock: { gt: 0 } },
+          orderBy: { expirationDate: 'asc' }
+        },
         branch: { select: { id: true, name: true } }, 
         externalMaps: true,
         _count: { select: { saleItems: true } }
@@ -1241,6 +1245,10 @@ export async function searchProducts(
       include: { 
         variants: true, 
         prices: true, 
+        batches: {
+          where: { stock: { gt: 0 } },
+          orderBy: { expirationDate: 'asc' }
+        },
         branch: { select: { id: true, name: true } }, 
         externalMaps: true,
         _count: { select: { saleItems: true } }

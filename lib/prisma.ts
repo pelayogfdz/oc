@@ -92,11 +92,21 @@ function registerMeliStockSyncMiddleware(client: PrismaClient, tenantId: string 
         meliIntegrationActiveCache.set(tenantId, isMeliActive);
       }
 
-      if (!isMeliActive) return result;
+      if (isMeliActive) {
+        const { enqueueMeliStockSync } = await import('@/lib/meliSyncQueue');
+        for (const productId of productsToSync) {
+          enqueueMeliStockSync(productId, tenantId);
+        }
+      }
 
-      const { enqueueMeliStockSync } = await import('@/lib/meliSyncQueue');
-      for (const productId of productsToSync) {
-        enqueueMeliStockSync(productId, tenantId);
+      // Encolar sincronización de inventario espejo con Uber Eats
+      try {
+        const { enqueueUberStockSync } = await import('@/lib/uberSyncQueue');
+        for (const productId of productsToSync) {
+          enqueueUberStockSync(productId, tenantId);
+        }
+      } catch (uberQueueErr) {
+        console.error('[PRISMA MIDDLEWARE] Error encolando sync para Uber Eats:', uberQueueErr);
       }
     } catch (err) {
       console.error('[PRISMA MIDDLEWARE] Error parsing product update:', err);
@@ -208,7 +218,7 @@ const getClientForRequest = cache(async (): Promise<PrismaClient> => {
     }
   } catch (e: any) {
     // Rethrow Next.js dynamic server usage errors so Next.js knows to make the page dynamic
-    if (e && (e.name === 'DynamicServerError' || e.message?.includes('dynamic') || e.digest === 'DYNAMIC_SERVER_USAGE')) {
+    if (e && (e.name === 'DynamicServerError' || e.digest === 'DYNAMIC_SERVER_USAGE') && !e.message?.includes('outside a request scope')) {
       throw e;
     }
     // cookies() or headers() throws error during static generation / pre-rendering,

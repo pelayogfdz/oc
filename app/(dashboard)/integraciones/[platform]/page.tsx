@@ -4,11 +4,42 @@ import { redirect } from 'next/navigation';
 import { KeyRound, ShieldAlert } from 'lucide-react';
 import BackButton from '@/app/components/ui/BackButton';
 
-export default async function NuevoIntegracion({ params }: { params: Promise<{ platform: string }> }) {
+export default async function NuevoIntegracion({ 
+  params,
+  searchParams
+}: { 
+  params: Promise<{ platform: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const { platform } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
 
-  if (platform && (platform.toLowerCase() === 'mercadolibre' || platform.toLowerCase() === 'mercado_libre')) {
-    redirect('/integraciones/mercadolibre');
+  const queryParams = new URLSearchParams();
+  for (const [k, v] of Object.entries(resolvedSearchParams)) {
+    if (typeof v === 'string') queryParams.set(k, v);
+    else if (Array.isArray(v) && v[0]) queryParams.set(k, v[0]);
+  }
+  const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+
+  const normalized = (platform || '').toLowerCase().replace(/[-_]/g, '');
+
+  if (normalized.includes('ubereats') || normalized === 'uber') {
+    redirect(`/integraciones/ubereats${queryString}`);
+  }
+  if (normalized.includes('mercadolibre') || normalized === 'meli') {
+    redirect(`/integraciones/mercadolibre${queryString}`);
+  }
+  if (normalized.includes('rappi')) {
+    redirect(`/integraciones/rappi${queryString}`);
+  }
+  if (normalized.includes('amazon')) {
+    redirect(`/integraciones/amazon${queryString}`);
+  }
+  if (normalized.includes('walmart')) {
+    redirect(`/integraciones/walmart${queryString}`);
+  }
+  if (normalized.includes('liverpool')) {
+    redirect(`/integraciones/liverpool${queryString}`);
   }
   
   const saveAction = async (formData: FormData) => {

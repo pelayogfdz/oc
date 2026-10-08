@@ -3,7 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import ChatInterface from "../prospeccion/chat/[id]/ChatInterface";
-import { getRecentQuotes, searchCustomers, assignCustomerToProspect } from "@/app/actions/whatsapp-crm";
+import { 
+  getRecentQuotes, 
+  searchCustomers, 
+  assignCustomerToProspect, 
+  getCustomerCrmDetails, 
+  createCustomerFromProspect 
+} from "@/app/actions/whatsapp-crm";
 import { formatCurrency } from "@/lib/utils";
 import toast from "react-hot-toast";
 
@@ -42,7 +48,11 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
   const [tempName, setTempName] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
   const [readStatus, setReadStatus] = useState<Record<string, number>>({});
-  const [filterTab, setFilterTab] = useState<'all' | 'read' | 'unread'>('all');
+  const [filterTab, setFilterTab] = useState<'all' | 'read' | 'unread' | 'mine' | 'unassigned'>('all');
+  const [showCrmDrawer, setShowCrmDrawer] = useState(true);
+  const [crmCustomerDetails, setCrmCustomerDetails] = useState<any>(null);
+  const [isLoadingCrm, setIsLoadingCrm] = useState(false);
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
   const isSendingQuoteRef = useRef(false);
 
   // Cargar estado de lectura desde localStorage
@@ -514,6 +524,72 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
     setIsEditingName(false);
   }, [selectedProspectId, selectedProspect]);
 
+  const getInitials = (name?: string) => {
+    if (!name) return "WA";
+    const clean = name.trim().replace(/^[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]+/, '');
+    const parts = clean.split(/\s+/);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    if (selectedProspect?.customerId) {
+      setIsLoadingCrm(true);
+      getCustomerCrmDetails(selectedProspect.customerId)
+        .then((details) => {
+          if (isMounted) {
+            setCrmCustomerDetails(details);
+            setIsLoadingCrm(false);
+          }
+        })
+        .catch((err) => {
+          console.error("Error loading CRM details:", err);
+          if (isMounted) setIsLoadingCrm(false);
+        });
+    } else {
+      setCrmCustomerDetails(null);
+      setIsLoadingCrm(false);
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedProspect?.customerId, selectedProspect?.id]);
+
+  const handleQuickCreateCustomer = async () => {
+    if (!selectedProspect) return;
+    setIsCreatingCustomer(true);
+    try {
+      const res = await createCustomerFromProspect(selectedProspect.id, {
+        name: selectedProspect.name,
+        phone: selectedProspect.phone
+      });
+      if (res.success && res.customer) {
+        toast.success("¡Cliente creado y vinculado exitosamente!");
+        setProspects((prev: any) =>
+          prev.map((p: any) =>
+            p.id === selectedProspect.id
+              ? { ...p, customerId: res.customer.id, customer: res.customer }
+              : p
+          )
+        );
+        setCrmCustomerDetails({
+          ...res.customer,
+          quotes: [],
+          sales: []
+        });
+        router.refresh();
+      } else {
+        toast.error(res.error || "No se pudo crear el cliente.");
+      }
+    } catch (err: any) {
+      console.error("Error creating customer:", err);
+      toast.error("Error al crear cliente.");
+    } finally {
+      setIsCreatingCustomer(false);
+    }
+  };
+
   useEffect(() => {
     if (showCustomerModal) {
       if (customers && customers.length > 0 && searchedCustomers.length === 0) {
@@ -774,6 +850,10 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
     return new Date(p.updatedAt || p.createdAt).getTime();
   };
 
+  const unreadCount = prospects.filter((p: any) => isProspectUnread(p)).length;
+  const mineCount = currentUser?.id ? prospects.filter((p: any) => p.assignedUserId === currentUser.id).length : 0;
+  const unassignedCount = prospects.filter((p: any) => !p.assignedUserId).length;
+
   const filteredProspects = prospects
     .filter((p: any) => {
       // 1. Filtro por término de búsqueda
@@ -784,11 +864,15 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
         if (!nameMatch && !phoneMatch) return false;
       }
       
-      // 2. Filtro por estado de lectura (Tabs)
-      if (filterTab === 'unread') {
-        return isProspectUnread(p);
-      } else if (filterTab === 'read') {
+      // 2. Filtro por pestañas (Todos, Leídos, No leídos, Mis chats, Sin asignar)
+      if (filterTab === 'read') {
         return !isProspectUnread(p);
+      } else if (filterTab === 'unread') {
+        return isProspectUnread(p);
+      } else if (filterTab === 'mine') {
+        return currentUser?.id ? p.assignedUserId === currentUser.id : true;
+      } else if (filterTab === 'unassigned') {
+        return !p.assignedUserId;
       }
       return true;
     })
@@ -1375,15 +1459,14 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
           />
 
           {/* Filtros de Chats Segmented Control */}
-          <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.75rem', padding: '0.15rem', backgroundColor: '#f1f5f9', borderRadius: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.2rem', marginTop: '0.75rem', padding: '0.2rem', backgroundColor: '#f1f5f9', borderRadius: '10px' }}>
             <button 
               type="button"
               onClick={() => setFilterTab('all')} 
               style={{
-                flex: 1,
-                padding: '0.45rem 0.25rem',
+                padding: '0.45rem 0.15rem',
                 borderRadius: '8px',
-                fontSize: '0.775rem',
+                fontSize: '0.725rem',
                 fontWeight: '700',
                 border: 'none',
                 cursor: 'pointer',
@@ -1394,44 +1477,18 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
                 textAlign: 'center',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.25rem'
+                justifyContent: 'center'
               }}
             >
               Todos
             </button>
             <button 
               type="button"
-              onClick={() => setFilterTab('read')} 
-              style={{
-                flex: 1,
-                padding: '0.45rem 0.25rem',
-                borderRadius: '8px',
-                fontSize: '0.775rem',
-                fontWeight: '700',
-                border: 'none',
-                cursor: 'pointer',
-                backgroundColor: filterTab === 'read' ? 'white' : 'transparent',
-                color: filterTab === 'read' ? '#0f172a' : '#64748b',
-                boxShadow: filterTab === 'read' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                transition: 'all 0.2s ease',
-                textAlign: 'center',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.25rem'
-              }}
-            >
-              Leídos
-            </button>
-            <button 
-              type="button"
               onClick={() => setFilterTab('unread')} 
               style={{
-                flex: 1,
-                padding: '0.45rem 0.25rem',
+                padding: '0.45rem 0.15rem',
                 borderRadius: '8px',
-                fontSize: '0.775rem',
+                fontSize: '0.725rem',
                 fontWeight: '700',
                 border: 'none',
                 cursor: 'pointer',
@@ -1443,23 +1500,99 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '0.25rem'
+                gap: '0.2rem'
               }}
             >
               <span>No leídos</span>
-              {prospects.filter((p: any) => isProspectUnread(p)).length > 0 && (
+              {unreadCount > 0 && (
                 <span style={{ 
                   backgroundColor: '#ef4444', 
                   color: 'white', 
-                  fontSize: '0.65rem', 
+                  fontSize: '0.6rem', 
                   fontWeight: 'bold', 
-                  padding: '0.05rem 0.35rem', 
+                  padding: '0.05rem 0.3rem', 
                   borderRadius: '10px',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  {prospects.filter((p: any) => isProspectUnread(p)).length}
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+            <button 
+              type="button"
+              onClick={() => setFilterTab('mine')} 
+              style={{
+                padding: '0.45rem 0.15rem',
+                borderRadius: '8px',
+                fontSize: '0.725rem',
+                fontWeight: '700',
+                border: 'none',
+                cursor: 'pointer',
+                backgroundColor: filterTab === 'mine' ? 'white' : 'transparent',
+                color: filterTab === 'mine' ? '#0f172a' : '#64748b',
+                boxShadow: filterTab === 'mine' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.2s ease',
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.2rem'
+              }}
+            >
+              <span>Míos</span>
+              {mineCount > 0 && (
+                <span style={{ 
+                  backgroundColor: '#2563eb', 
+                  color: 'white', 
+                  fontSize: '0.6rem', 
+                  fontWeight: 'bold', 
+                  padding: '0.05rem 0.3rem', 
+                  borderRadius: '10px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {mineCount}
+                </span>
+              )}
+            </button>
+            <button 
+              type="button"
+              onClick={() => setFilterTab('unassigned')} 
+              style={{
+                padding: '0.45rem 0.15rem',
+                borderRadius: '8px',
+                fontSize: '0.725rem',
+                fontWeight: '700',
+                border: 'none',
+                cursor: 'pointer',
+                backgroundColor: filterTab === 'unassigned' ? 'white' : 'transparent',
+                color: filterTab === 'unassigned' ? '#0f172a' : '#64748b',
+                boxShadow: filterTab === 'unassigned' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.2s ease',
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.2rem'
+              }}
+            >
+              <span>Sin asignar</span>
+              {unassignedCount > 0 && (
+                <span style={{ 
+                  backgroundColor: '#f59e0b', 
+                  color: 'white', 
+                  fontSize: '0.6rem', 
+                  fontWeight: 'bold', 
+                  padding: '0.05rem 0.3rem', 
+                  borderRadius: '10px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {unassignedCount}
                 </span>
               )}
             </button>
@@ -1492,7 +1625,7 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
                 key={prospect.id}
                 onClick={() => setSelectedProspectId(prospect.id)}
                 style={{ 
-                  padding: '1rem 1rem 1rem 0.75rem', 
+                  padding: '0.85rem 0.75rem', 
                   borderBottom: '1px solid #e2e8f0', 
                   cursor: 'pointer',
                   backgroundColor: isSelected 
@@ -1507,81 +1640,106 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
                       : '4px solid transparent',
                   transition: 'all 0.2s ease',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.25rem'
+                  gap: '0.75rem',
+                  alignItems: 'center'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <strong style={{ 
-                    fontSize: '1rem', 
-                    color: isSelected ? '#1e40af' : isUnread ? '#0f172a' : '#334155',
-                    fontWeight: isUnread ? '700' : '600'
-                  }}>
-                    {prospect.name}
-                  </strong>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    {isUnassigned && (
-                      <span style={{ fontSize: '0.65rem', backgroundColor: '#ef4444', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '1rem', fontWeight: 'bold' }}>
-                        NUEVO
+                {/* Avatar Initials Circle */}
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  background: isSelected 
+                    ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' 
+                    : isUnread 
+                      ? 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)' 
+                      : '#e2e8f0',
+                  color: isSelected || isUnread ? 'white' : '#475569',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: '700',
+                  fontSize: '0.875rem',
+                  flexShrink: 0
+                }}>
+                  {getInitials(prospect.name)}
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong style={{ 
+                      fontSize: '0.95rem', 
+                      color: isSelected ? '#1e40af' : isUnread ? '#0f172a' : '#334155',
+                      fontWeight: isUnread ? '700' : '600',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {prospect.name}
+                    </strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0 }}>
+                      {isUnassigned && (
+                        <span style={{ fontSize: '0.625rem', backgroundColor: '#ef4444', color: 'white', padding: '0.05rem 0.35rem', borderRadius: '1rem', fontWeight: 'bold' }}>
+                          NUEVO
+                        </span>
+                      )}
+                      {lastMessage && (
+                        <span style={{ 
+                          fontSize: '0.7rem', 
+                          color: isUnread ? '#4f46e5' : '#94a3b8', 
+                          fontWeight: isUnread ? '600' : 'normal' 
+                        }}>
+                          {new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                    {lastMessage ? (
+                      <div style={{ 
+                        fontSize: '0.8rem', 
+                        color: isSelected ? '#3b82f6' : isUnread ? '#334155' : '#94a3b8', 
+                        fontWeight: isUnread ? '600' : 'normal',
+                        whiteSpace: 'nowrap', 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis',
+                        flex: 1
+                      }}>
+                        {lastMessage.isFromMe ? "Tú: " : ""}{formatSidebarLastMessage(lastMessage.body)}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                        Sin mensajes
+                      </div>
+                    )}
+                    {isUnread && (
+                      <span style={{ 
+                        backgroundColor: '#4f46e5', 
+                        color: 'white', 
+                        borderRadius: '50%', 
+                        minWidth: '18px', 
+                        height: '18px', 
+                        fontSize: '0.65rem', 
+                        fontWeight: 'bold', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        padding: '0 4px',
+                        flexShrink: 0,
+                        boxShadow: '0 2px 4px rgba(79, 70, 229, 0.2)'
+                      }}>
+                        {getUnreadMessagesCount(prospect)}
                       </span>
                     )}
                   </div>
-                </div>
-                
-                <div style={{ fontSize: '0.875rem', color: isUnread ? '#475569' : '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>{prospect.phone}</span>
-                  {lastMessage && (
-                    <span style={{ 
-                      fontSize: '0.725rem', 
-                      color: isUnread ? '#4f46e5' : '#94a3b8', 
-                      fontWeight: isUnread ? '600' : 'normal' 
-                    }}>
-                      {new Date(lastMessage.timestamp).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  )}
-                </div>
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                  {lastMessage ? (
-                    <div style={{ 
-                      fontSize: '0.825rem', 
-                      color: isSelected ? '#3b82f6' : isUnread ? '#334155' : '#94a3b8', 
-                      fontWeight: isUnread ? '600' : 'normal',
-                      whiteSpace: 'nowrap', 
-                      overflow: 'hidden', 
-                      textOverflow: 'ellipsis',
-                      flex: 1
-                    }}>
-                      {lastMessage.isFromMe ? "Tú: " : ""}{formatSidebarLastMessage(lastMessage.body)}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: '0.825rem', color: '#94a3b8', fontStyle: 'italic' }}>
-                      Sin mensajes
-                    </div>
-                  )}
-                  {isUnread && (
-                    <span style={{ 
-                      backgroundColor: '#4f46e5', 
-                      color: 'white', 
-                      borderRadius: '50%', 
-                      minWidth: '18px', 
-                      height: '18px', 
-                      fontSize: '0.7rem', 
-                      fontWeight: 'bold', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      padding: '0 4px',
-                      flexShrink: 0,
-                      boxShadow: '0 2px 4px rgba(79, 70, 229, 0.2)'
-                    }}>
-                      {getUnreadMessagesCount(prospect)}
-                    </span>
-                  )}
-                </div>
 
-                <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: prospect.assignedUser ? '#2563eb' : '#f59e0b', fontWeight: '500' }}>
-                  {prospect.assignedUser ? `Asignado a: ${prospect.assignedUser.name}` : 'Sin asignar'}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.725rem', marginTop: '0.1rem' }}>
+                    <span style={{ color: '#94a3b8' }}>{prospect.phone}</span>
+                    <span style={{ color: prospect.assignedUser ? '#2563eb' : '#f59e0b', fontWeight: '500' }}>
+                      {prospect.assignedUser ? `👤 ${prospect.assignedUser.name.split(' ')[0]}` : 'Sin asignar'}
+                    </span>
+                  </div>
                 </div>
               </div>
             );
@@ -1594,185 +1752,161 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
         {selectedProspect ? (
           <>
             {/* Header del Chat */}
-            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e2e8f0', backgroundColor: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                {isEditingName ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <input 
-                      type="text" 
-                      value={tempName} 
-                      onChange={e => setTempName(e.target.value)} 
-                      style={{ 
-                        fontSize: '1.1rem', 
-                        fontWeight: 'bold', 
-                        padding: '0.25rem 0.5rem', 
-                        borderRadius: '6px', 
-                        border: '1px solid #cbd5e1',
-                        outline: 'none'
-                      }}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') handleSaveName();
-                        if (e.key === 'Escape') setIsEditingName(false);
-                      }}
-                      autoFocus
-                    />
-                    <button 
-                      onClick={handleSaveName} 
-                      style={{ padding: '0.25rem 0.75rem', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}>
-                      Guardar
-                    </button>
-                    <button 
-                      onClick={() => setIsEditingName(false)} 
-                      style={{ padding: '0.25rem 0.75rem', backgroundColor: '#cbd5e1', color: '#334155', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}>
-                      Cancelar
-                    </button>
-                  </div>
-                ) : (
+            <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #e2e8f0', backgroundColor: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                {/* Avatar */}
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 'bold',
+                  fontSize: '1rem',
+                  boxShadow: '0 2px 4px rgba(2, 132, 199, 0.2)',
+                  flexShrink: 0
+                }}>
+                  {getInitials(selectedProspect.name)}
+                </div>
+
+                <div style={{ minWidth: 0 }}>
+                  {isEditingName ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
+                      <input 
+                        type="text" 
+                        value={tempName} 
+                        onChange={e => setTempName(e.target.value)} 
+                        style={{ 
+                          fontSize: '1rem', 
+                          fontWeight: 'bold', 
+                          padding: '0.2rem 0.5rem', 
+                          borderRadius: '6px', 
+                          border: '1px solid #cbd5e1',
+                          outline: 'none'
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') handleSaveName();
+                          if (e.key === 'Escape') setIsEditingName(false);
+                        }}
+                        autoFocus
+                      />
+                      <button 
+                        onClick={handleSaveName} 
+                        style={{ padding: '0.2rem 0.6rem', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.75rem' }}>
+                        Guardar
+                      </button>
+                      <button 
+                        onClick={() => setIsEditingName(false)} 
+                        style={{ padding: '0.2rem 0.6rem', backgroundColor: '#cbd5e1', color: '#334155', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.75rem' }}>
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#1e293b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {selectedProspect.name}
+                      </h3>
+                      <button 
+                        onClick={() => {
+                          setTempName(selectedProspect.name || "");
+                          setIsEditingName(true);
+                        }} 
+                        title="Editar nombre"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem', display: 'inline-flex', alignItems: 'center', color: '#64748b' }}>
+                        ✏️
+                      </button>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{selectedProspect.name}</h3>
-                    <button 
-                      onClick={() => {
-                        setTempName(selectedProspect.name || "");
-                        setIsEditingName(true);
-                      }} 
-                      title="Editar nombre"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', display: 'inline-flex', alignItems: 'center', color: '#64748b' }}>
-                      ✏️
-                    </button>
+                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{selectedProspect.phone}</span>
+                    {selectedProspect.customerId ? (
+                      <span 
+                        onClick={() => setShowCrmDrawer(true)}
+                        style={{ 
+                          fontSize: '0.725rem', 
+                          backgroundColor: '#ecfdf5', 
+                          color: '#059669', 
+                          padding: '0.1rem 0.5rem', 
+                          borderRadius: '10px', 
+                          border: '1px solid #a7f3d0',
+                          fontWeight: 600,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ✅ Cliente Vinculado
+                      </span>
+                    ) : (
+                      <span 
+                        onClick={() => setShowCrmDrawer(true)}
+                        style={{ 
+                          fontSize: '0.725rem', 
+                          backgroundColor: '#fffbeb', 
+                          color: '#d97706', 
+                          padding: '0.1rem 0.5rem', 
+                          borderRadius: '10px', 
+                          border: '1px solid #fde68a',
+                          fontWeight: 600,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ⚠️ Prospecto
+                      </span>
+                    )}
                   </div>
-                )}
-                <p style={{ fontSize: '0.875rem', color: '#64748b', margin: 0 }}>{selectedProspect.phone}</p>
-                {selectedProspect.customerId ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                    <span style={{ 
-                      fontSize: '0.75rem', 
-                      backgroundColor: '#eff6ff', 
-                      color: '#1d4ed8', 
-                      padding: '0.25rem 0.5rem', 
-                      borderRadius: '12px', 
-                      border: '1px solid #bfdbfe',
-                      fontWeight: 600,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.25rem'
-                    }}>
-                      🫱🔗 Cliente: {selectedProspect.customer?.name || "Cargando..."}
-                    </span>
-                    <button 
-                      onClick={() => setShowCustomerModal(true)} 
-                      style={{ 
-                        background: 'none', 
-                        border: 'none', 
-                        color: '#2563eb', 
-                        cursor: 'pointer', 
-                        fontSize: '0.75rem', 
-                        textDecoration: 'underline',
-                        padding: 0
-                      }}>
-                      Cambiar
-                    </button>
-                    <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>|</span>
-                    <button 
-                      onClick={handleUnlinkCustomer} 
-                      style={{ 
-                        background: 'none', 
-                        border: 'none', 
-                        color: '#ef4444', 
-                        cursor: 'pointer', 
-                        fontSize: '0.75rem', 
-                        textDecoration: 'underline',
-                        padding: 0
-                      }}>
-                      Desvincular
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                    <span style={{ 
-                      fontSize: '0.75rem', 
-                      backgroundColor: '#f8fafc', 
-                      color: '#64748b', 
-                      padding: '0.25rem 0.5rem', 
-                      borderRadius: '12px', 
-                      border: '1px solid #e2e8f0',
-                      fontWeight: 500
-                    }}>
-                      Sin cliente vinculado
-                    </span>
-                    <button 
-                      onClick={() => setShowCustomerModal(true)} 
-                      style={{ 
-                        background: 'none', 
-                        border: 'none', 
-                        color: '#2563eb', 
-                        cursor: 'pointer', 
-                        fontSize: '0.75rem', 
-                        textDecoration: 'underline',
-                        padding: 0
-                      }}>
-                      Vincular Cliente
-                    </button>
-                  </div>
-                )}
+                </div>
               </div>
               
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {/* Botón Drawer CRM */}
+                <button 
+                  onClick={() => setShowCrmDrawer(prev => !prev)}
+                  title={showCrmDrawer ? "Ocultar panel lateral" : "Ver detalles y CRM del cliente"}
+                  style={{
+                    backgroundColor: showCrmDrawer ? '#dbeafe' : '#f1f5f9',
+                    border: showCrmDrawer ? '1px solid #93c5fd' : '1px solid #cbd5e1',
+                    color: showCrmDrawer ? '#1d4ed8' : '#475569',
+                    cursor: 'pointer',
+                    padding: '0.4rem 0.75rem',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <span>{showCrmDrawer ? '◀ CRM Activo' : 'ℹ️ Ver CRM'}</span>
+                </button>
+
                 <button 
                   onClick={handleOpenQuotes}
-                  style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', cursor: 'pointer', padding: '0.25rem 0.75rem', borderRadius: '16px', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', cursor: 'pointer', padding: '0.4rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                   📂 Cargar Cotización
                 </button>
 
-                <button 
-                  onClick={() => setShowCustomerModal(true)}
-                  style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', cursor: 'pointer', padding: '0.25rem 0.75rem', borderRadius: '16px', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  👤 {selectedProspect.customerId ? "Cliente Vinculado" : "Asignar a Cliente Existente"}
-                </button>
-
-                {!selectedProspect.customerId && (
+                {selectedProspect.customerId && (
                   <button
-                    onClick={async () => {
-                      if(confirm("¿Guardar este prospecto como cliente en el sistema?")) {
-                        try {
-                          const res = await fetch(`/api/prospects/${selectedProspect.id}`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ createCustomer: true })
-                          });
-                          if (res.ok) {
-                            const updated = await res.json();
-                            setProspects((prev: any) =>
-                              prev.map((p: any) => p.id === selectedProspect.id ? { ...p, customerId: updated.customerId, customer: updated.customer } : p)
-                            );
-                            router.refresh();
-                          }
-                        } catch(e) {
-                          alert("Error al guardar como cliente");
-                        }
-                      }
-                    }}
+                    onClick={() => router.push(`/pos?customerId=${selectedProspect.customerId}`)}
                     style={{
-                      padding: '0.5rem 1rem',
-                      backgroundColor: '#f59e0b',
+                      padding: '0.4rem 0.75rem',
+                      backgroundColor: '#059669',
                       color: 'white',
                       borderRadius: '8px',
                       border: 'none',
                       fontWeight: 'bold',
-                      fontSize: '0.875rem',
+                      fontSize: '0.8rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.5rem'
+                      gap: '0.3rem'
                     }}
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="12" cy="7" r="4"></circle>
-                      <line x1="20" y1="8" x2="20" y2="14"></line>
-                      <line x1="23" y1="11" x2="17" y2="11"></line>
-                    </svg>
-                    Guardar en Clientes
+                    <span>🛒</span>
+                    <span>Venta POS</span>
                   </button>
                 )}
 
@@ -1785,49 +1919,41 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
                     }
                   }}
                   style={{
-                    padding: '0.5rem 1rem',
+                    padding: '0.4rem 0.75rem',
                     backgroundColor: '#10b981',
                     color: 'white',
                     borderRadius: '8px',
                     border: 'none',
                     fontWeight: 'bold',
-                    fontSize: '0.875rem',
+                    fontSize: '0.8rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5rem'
+                    gap: '0.3rem'
                   }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                    <polyline points="10 9 9 9 8 9"></polyline>
-                  </svg>
-                  Crear Cotización
+                  <span>📄</span>
+                  <span>Cotizar</span>
                 </button>
 
-                <span style={{ fontSize: '0.875rem', color: '#475569', fontWeight: '500', marginLeft: '1rem' }}>Agente asignado:</span>
                 <select 
                   value={selectedProspect.assignedUserId || ""}
                   onChange={(e) => handleAssign(selectedProspect.id, e.target.value)}
                   style={{ 
-                    padding: '0.5rem 1rem', 
-                    fontSize: '0.875rem', 
+                    padding: '0.4rem 0.65rem', 
+                    fontSize: '0.8rem', 
                     borderRadius: '8px', 
                     border: '1px solid #cbd5e1', 
                     backgroundColor: '#f8fafc', 
                     color: '#1e293b',
-                    fontWeight: '500',
+                    fontWeight: '600',
                     outline: 'none',
-                    cursor: 'pointer',
-                    marginRight: '0.5rem'
+                    cursor: 'pointer'
                   }}
                 >
-                  <option value="">-- Sin asignar --</option>
+                  <option value="">👤 Sin asignar</option>
                   {users.map((u: any) => (
-                    <option key={u.id} value={u.id}>{u.name} ({u.commissionRole})</option>
+                    <option key={u.id} value={u.id}>{u.name}</option>
                   ))}
                 </select>
 
@@ -1835,7 +1961,7 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
                   onClick={handleDeleteConversation}
                   title="Eliminar Conversación"
                   style={{
-                    padding: '0.5rem',
+                    padding: '0.4rem',
                     backgroundColor: '#fee2e2',
                     border: '1px solid #fecaca',
                     color: '#dc2626',
@@ -1853,7 +1979,7 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
                     e.currentTarget.style.backgroundColor = '#fee2e2';
                   }}
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="3 6 5 6 21 6"></polyline>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                     <line x1="10" y1="11" x2="10" y2="17"></line>
@@ -1863,10 +1989,453 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
               </div>
             </div>
             
-            {/* Área de Chat (Reutilizando el componente) */}
-            <div style={{ flex: 1, overflow: 'hidden' }}>
-              {/* Es crucial agregar el key={selectedProspect.id} para que React desmonte y vuelva a montar el ChatInterface, asegurando que se resetee el estado de mensajes cuando cambiamos de prospecto */}
-              <ChatInterface key={selectedProspect.id} prospect={selectedProspect} />
+            {/* Área de Chat + CRM Drawer Panel */}
+            <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, height: '100%' }}>
+                {/* Es crucial agregar el key={selectedProspect.id} para que React desmonte y vuelva a montar el ChatInterface, asegurando que se resetee el estado de mensajes cuando cambiamos de prospecto */}
+                <ChatInterface key={selectedProspect.id} prospect={selectedProspect} />
+              </div>
+
+              {/* Panel Lateral Drawer CRM */}
+              {showCrmDrawer && (
+                <div style={{
+                  width: '340px',
+                  borderLeft: '1px solid #e2e8f0',
+                  backgroundColor: '#ffffff',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flexShrink: 0,
+                  height: '100%',
+                  overflowY: 'auto'
+                }}>
+                  {/* Drawer Header */}
+                  <div style={{
+                    padding: '0.85rem 1rem',
+                    borderBottom: '1px solid #f1f5f9',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    backgroundColor: '#f8fafc'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span style={{ fontSize: '1rem' }}>📋</span>
+                      <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: '#0f172a' }}>
+                        Ficha de Contacto & CRM
+                      </h4>
+                    </div>
+                    <button 
+                      onClick={() => setShowCrmDrawer(false)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#94a3b8',
+                        cursor: 'pointer',
+                        fontSize: '1.1rem',
+                        padding: '0.2rem 0.4rem',
+                        borderRadius: '4px'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.color = '#0f172a'}
+                      onMouseLeave={e => e.currentTarget.style.color = '#94a3b8'}
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div style={{ padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                    {/* Contact Overview */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                      <div style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 'bold',
+                        fontSize: '1.25rem',
+                        boxShadow: '0 4px 6px -1px rgba(2, 132, 199, 0.25)',
+                        marginBottom: '0.5rem'
+                      }}>
+                        {getInitials(selectedProspect.name)}
+                      </div>
+                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '700', color: '#0f172a' }}>
+                        {selectedProspect.name}
+                      </h3>
+                      <span style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.15rem' }}>
+                        {selectedProspect.phone}
+                      </span>
+                      {selectedProspect.customerId ? (
+                        <span style={{
+                          marginTop: '0.4rem',
+                          fontSize: '0.725rem',
+                          backgroundColor: '#ecfdf5',
+                          color: '#059669',
+                          padding: '0.15rem 0.55rem',
+                          borderRadius: '20px',
+                          border: '1px solid #a7f3d0',
+                          fontWeight: 700
+                        }}>
+                          ✅ Cliente Registrado
+                        </span>
+                      ) : (
+                        <span style={{
+                          marginTop: '0.4rem',
+                          fontSize: '0.725rem',
+                          backgroundColor: '#fffbeb',
+                          color: '#d97706',
+                          padding: '0.15rem 0.55rem',
+                          borderRadius: '20px',
+                          border: '1px solid #fde68a',
+                          fontWeight: 700
+                        }}>
+                          ⚠️ Prospecto no registrado
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Asesor Asignado Selector */}
+                    <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: '700', color: '#475569', marginBottom: '0.3rem' }}>
+                        👤 Asesor Responsable
+                      </label>
+                      <select 
+                        value={selectedProspect.assignedUserId || ""}
+                        onChange={(e) => handleAssign(selectedProspect.id, e.target.value)}
+                        style={{ 
+                          width: '100%',
+                          padding: '0.4rem 0.5rem', 
+                          fontSize: '0.8rem', 
+                          borderRadius: '6px', 
+                          border: '1px solid #cbd5e1', 
+                          backgroundColor: 'white', 
+                          color: '#1e293b',
+                          fontWeight: '600',
+                          outline: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="">-- Sin asignar --</option>
+                        {users.map((u: any) => (
+                          <option key={u.id} value={u.id}>{u.name} ({u.commissionRole || 'Ventas'})</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* CRM Details - If customer is linked */}
+                    {selectedProspect.customerId ? (
+                      <>
+                        {isLoadingCrm ? (
+                          <div style={{ textAlign: 'center', padding: '1.25rem', color: '#64748b' }}>
+                            <div style={{ width: '20px', height: '20px', border: '2px solid #cbd5e1', borderTop: '2px solid #2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 0.5rem auto' }} />
+                            <span style={{ fontSize: '0.75rem' }}>Cargando métricas...</span>
+                          </div>
+                        ) : (
+                          <>
+                            {/* Financial Metrics Cards (2x2 Grid) */}
+                            <div>
+                              <div style={{ fontSize: '0.775rem', fontWeight: '700', color: '#334155', marginBottom: '0.4rem' }}>
+                                📊 Resumen Financiero
+                              </div>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+                                {/* Saldo Deudor */}
+                                <div style={{
+                                  backgroundColor: (crmCustomerDetails?.creditBalance || 0) > 0 ? '#fef2f2' : '#f0fdf4',
+                                  border: (crmCustomerDetails?.creditBalance || 0) > 0 ? '1px solid #fecaca' : '1px solid #bbf7d0',
+                                  borderRadius: '8px',
+                                  padding: '0.6rem'
+                                }}>
+                                  <div style={{ fontSize: '0.675rem', color: '#64748b', fontWeight: '600' }}>Saldo Deudor</div>
+                                  <div style={{
+                                    fontSize: '0.9rem',
+                                    fontWeight: '800',
+                                    color: (crmCustomerDetails?.creditBalance || 0) > 0 ? '#dc2626' : '#16a34a',
+                                    marginTop: '0.1rem'
+                                  }}>
+                                    {formatCurrency(crmCustomerDetails?.creditBalance || 0)}
+                                  </div>
+                                  <div style={{ fontSize: '0.625rem', color: (crmCustomerDetails?.creditBalance || 0) > 0 ? '#ef4444' : '#15803d', marginTop: '0.05rem' }}>
+                                    {(crmCustomerDetails?.creditBalance || 0) > 0 ? '⚠️ Pendiente' : '✅ Al día'}
+                                  </div>
+                                </div>
+
+                                {/* Límite de Crédito */}
+                                <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.6rem' }}>
+                                  <div style={{ fontSize: '0.675rem', color: '#64748b', fontWeight: '600' }}>Límite Crédito</div>
+                                  <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', marginTop: '0.1rem' }}>
+                                    {formatCurrency(crmCustomerDetails?.creditLimit || 0)}
+                                  </div>
+                                  <div style={{ fontSize: '0.625rem', color: '#64748b', marginTop: '0.05rem' }}>
+                                    {crmCustomerDetails?.creditDays || 0} días plazo
+                                  </div>
+                                </div>
+
+                                {/* Monedero */}
+                                <div style={{ backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '0.6rem' }}>
+                                  <div style={{ fontSize: '0.675rem', color: '#047857', fontWeight: '600' }}>Monedero</div>
+                                  <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#059669', marginTop: '0.1rem' }}>
+                                    {formatCurrency(crmCustomerDetails?.storeCredit || 0)}
+                                  </div>
+                                  <div style={{ fontSize: '0.625rem', color: '#065f46', marginTop: '0.05rem' }}>
+                                    Saldo a favor
+                                  </div>
+                                </div>
+
+                                {/* Tarifa / Lista */}
+                                <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '0.6rem' }}>
+                                  <div style={{ fontSize: '0.675rem', color: '#1e40af', fontWeight: '600' }}>Lista Precios</div>
+                                  <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#1d4ed8', marginTop: '0.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {crmCustomerDetails?.priceList || 'Público'}
+                                  </div>
+                                  <div style={{ fontSize: '0.625rem', color: '#2563eb', marginTop: '0.05rem' }}>
+                                    RFC: {crmCustomerDetails?.taxId || 'XAXX010101000'}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Acciones Rápidas */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                              <button
+                                onClick={() => router.push(`/pos?customerId=${selectedProspect.customerId}`)}
+                                style={{
+                                  padding: '0.5rem',
+                                  backgroundColor: '#059669',
+                                  color: 'white',
+                                  borderRadius: '6px',
+                                  border: 'none',
+                                  fontWeight: '700',
+                                  fontSize: '0.775rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '0.35rem',
+                                  boxShadow: '0 2px 4px rgba(5, 150, 105, 0.2)'
+                                }}
+                              >
+                                <span>🛒</span>
+                                <span>Abrir Punto de Venta (POS)</span>
+                              </button>
+
+                              <button
+                                onClick={() => router.push(`/ventas/cotizaciones/nueva?customerId=${selectedProspect.customerId}`)}
+                                style={{
+                                  padding: '0.5rem',
+                                  backgroundColor: '#2563eb',
+                                  color: 'white',
+                                  borderRadius: '6px',
+                                  border: 'none',
+                                  fontWeight: '700',
+                                  fontSize: '0.775rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '0.35rem',
+                                  boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)'
+                                }}
+                              >
+                                <span>📄</span>
+                                <span>Crear Nueva Cotización</span>
+                              </button>
+                            </div>
+
+                            {/* Cotizaciones Recientes */}
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                                <span style={{ fontSize: '0.775rem', fontWeight: '700', color: '#334155' }}>
+                                  📑 Cotizaciones Recientes ({crmCustomerDetails?.quotes?.length || 0})
+                                </span>
+                              </div>
+                              {(!crmCustomerDetails?.quotes || crmCustomerDetails.quotes.length === 0) ? (
+                                <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic', padding: '0.4rem', backgroundColor: '#f8fafc', borderRadius: '6px', textAlign: 'center' }}>
+                                  Sin cotizaciones registradas
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                  {crmCustomerDetails.quotes.map((q: any) => (
+                                    <div key={q.id} style={{
+                                      padding: '0.45rem 0.55rem',
+                                      backgroundColor: '#f8fafc',
+                                      border: '1px solid #e2e8f0',
+                                      borderRadius: '6px',
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      gap: '0.4rem'
+                                    }}>
+                                      <div style={{ minWidth: 0, flex: 1 }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#0f172a' }}>
+                                          #{q.folio || q.id.slice(0, 6).toUpperCase()}
+                                        </div>
+                                        <div style={{ fontSize: '0.675rem', color: '#64748b' }}>
+                                          {new Date(q.createdAt).toLocaleDateString([], { day: '2-digit', month: 'short' })} • {formatCurrency(q.total)}
+                                        </div>
+                                      </div>
+                                      <button
+                                        onClick={() => handleSendQuote(q.id)}
+                                        title="Enviar enlace por WhatsApp"
+                                        style={{
+                                          padding: '0.25rem 0.5rem',
+                                          backgroundColor: '#10b981',
+                                          color: 'white',
+                                          border: 'none',
+                                          borderRadius: '5px',
+                                          fontSize: '0.675rem',
+                                          fontWeight: '700',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '0.2rem',
+                                          flexShrink: 0
+                                        }}
+                                      >
+                                        <span>📤</span>
+                                        <span>Enviar</span>
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Ventas Recientes */}
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                                <span style={{ fontSize: '0.775rem', fontWeight: '700', color: '#334155' }}>
+                                  🛍️ Compras Recientes ({crmCustomerDetails?.sales?.length || 0})
+                                </span>
+                              </div>
+                              {(!crmCustomerDetails?.sales || crmCustomerDetails.sales.length === 0) ? (
+                                <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic', padding: '0.4rem', backgroundColor: '#f8fafc', borderRadius: '6px', textAlign: 'center' }}>
+                                  Sin compras registradas
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                  {crmCustomerDetails.sales.map((s: any) => (
+                                    <div key={s.id} style={{
+                                      padding: '0.45rem 0.55rem',
+                                      backgroundColor: '#f8fafc',
+                                      border: '1px solid #e2e8f0',
+                                      borderRadius: '6px',
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center'
+                                    }}>
+                                      <div>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#0f172a' }}>
+                                          #{s.folio || s.id.slice(0, 6).toUpperCase()}
+                                        </div>
+                                        <div style={{ fontSize: '0.675rem', color: '#64748b' }}>
+                                          {new Date(s.createdAt).toLocaleDateString([], { day: '2-digit', month: 'short' })}
+                                        </div>
+                                      </div>
+                                      <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontSize: '0.775rem', fontWeight: '800', color: '#0f172a' }}>
+                                          {formatCurrency(s.total)}
+                                        </div>
+                                        <div style={{ fontSize: '0.625rem', color: '#16a34a', fontWeight: '600' }}>
+                                          {s.paymentMethod || 'Pagado'}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Cliente management footer */}
+                            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.65rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <button
+                                onClick={() => setShowCustomerModal(true)}
+                                style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.725rem', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }}
+                              >
+                                Cambiar Cliente
+                              </button>
+                              <button
+                                onClick={handleUnlinkCustomer}
+                                style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.725rem', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }}
+                              >
+                                Desvincular
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      /* If customer is NOT linked */
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <div style={{
+                          backgroundColor: '#eff6ff',
+                          border: '1px solid #bfdbfe',
+                          borderRadius: '8px',
+                          padding: '0.75rem',
+                          fontSize: '0.775rem',
+                          color: '#1e40af',
+                          lineHeight: 1.4
+                        }}>
+                          💡 <strong>Vincula este chat</strong> para consultar límites de crédito, saldo deudor, crear cotizaciones formales y asignar ventas con 1 clic.
+                        </div>
+
+                        <button
+                          onClick={handleQuickCreateCustomer}
+                          disabled={isCreatingCustomer}
+                          style={{
+                            padding: '0.6rem 0.85rem',
+                            backgroundColor: isCreatingCustomer ? '#93c5fd' : '#2563eb',
+                            color: 'white',
+                            borderRadius: '8px',
+                            border: 'none',
+                            fontWeight: '700',
+                            fontSize: '0.825rem',
+                            cursor: isCreatingCustomer ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.35rem',
+                            boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)'
+                          }}
+                        >
+                          {isCreatingCustomer ? (
+                            <>
+                              <span style={{ width: '12px', height: '12px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite', display: 'inline-block' }} />
+                              <span>Creando cliente...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>🌟</span>
+                              <span>Convertir en Cliente (1 Clic)</span>
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          onClick={() => setShowCustomerModal(true)}
+                          style={{
+                            padding: '0.55rem 0.85rem',
+                            backgroundColor: 'white',
+                            color: '#334155',
+                            borderRadius: '8px',
+                            border: '1px solid #cbd5e1',
+                            fontWeight: '600',
+                            fontSize: '0.8rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.35rem'
+                          }}
+                        >
+                          <span>🔍</span>
+                          <span>Vincular a Cliente Existente</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </>
         ) : (

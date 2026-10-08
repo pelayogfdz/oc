@@ -5,16 +5,18 @@ import { ArrowLeft, Save, Trash2, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import BackButton from '@/app/components/ui/BackButton';
 
-export default async function RappiConfigPage() {
+export default async function RappiConfigPage({ searchParams }: { searchParams?: Promise<{ branchId?: string }> }) {
   const branch = await getActiveBranch();
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const targetBranchId = resolvedSearchParams.branchId || branch?.id || '';
   
-  const integration = await prisma.storeIntegration.findUnique({
-    where: { branchId_platform: { branchId: branch.id, platform: 'RAPPI' } }
-  });
+  const integration = targetBranchId ? await prisma.storeIntegration.findFirst({
+    where: { branchId: targetBranchId, platform: { in: ['RAPPI', 'rappi'] } }
+  }) : null;
 
-  const externalMaps = await prisma.externalProductMap.count({
-    where: { platform: 'RAPPI', product: { branchId: branch.id } }
-  });
+  const externalMaps = targetBranchId ? await prisma.externalProductMap.count({
+    where: { platform: { in: ['RAPPI', 'rappi'] }, product: { branchId: targetBranchId } }
+  }) : 0;
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>

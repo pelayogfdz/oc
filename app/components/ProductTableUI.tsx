@@ -97,7 +97,7 @@ const ProductTableUI = memo(function ProductTableUI({
   }, [zoomImageUrl]);
 
   return (
-    <div style={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
+    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; }
@@ -191,9 +191,9 @@ const ProductTableUI = memo(function ProductTableUI({
       <div style={{ overflowX: 'auto', minHeight: '280px' }}>
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#fafafa', color: '#1e293b' }}>
+            <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
               {showCheckboxes && (
-                <th style={{ padding: '0.5rem 0.4rem', width: '30px', textAlign: 'center' }}>
+                <th style={{ padding: '0.75rem 0.5rem', width: '36px', textAlign: 'center' }}>
                   <input 
                     type="checkbox" 
                     checked={allSelected}
@@ -202,10 +202,10 @@ const ProductTableUI = memo(function ProductTableUI({
                   />
                 </th>
               )}
-              <th style={{ padding: '0.5rem 0.4rem', fontWeight: 'bold' }}>Producto</th>
-              <th style={{ padding: '0.5rem 0.4rem', fontWeight: 'bold', textAlign: 'center', width: '60px' }}>Stock</th>
-              <th style={{ padding: '0.5rem 0.4rem', fontWeight: 'bold', textAlign: 'right', width: '90px' }}>Precio</th>
-              {renderCustomActions && <th style={{ padding: '0.5rem 0.4rem' }}></th>}
+              <th style={{ padding: '0.75rem 0.75rem', fontWeight: '700' }}>Producto</th>
+              <th style={{ padding: '0.75rem 0.75rem', fontWeight: '700', textAlign: 'center', width: '80px' }}>Stock</th>
+              <th style={{ padding: '0.75rem 0.75rem', fontWeight: '700', textAlign: 'right', width: '100px' }}>Precio</th>
+              {renderCustomActions && <th style={{ padding: '0.75rem 0.75rem', width: '50px' }}></th>}
             </tr>
           </thead>
           <tbody>
@@ -215,9 +215,9 @@ const ProductTableUI = memo(function ProductTableUI({
                 <tr 
                   key={prod.id} 
                   style={{ 
-                    borderBottom: '1px solid #e2e8f0', 
-                    transition: 'background-color 0.2s',
-                    backgroundColor: isSelected ? '#f0fdf4' : 'transparent',
+                    borderBottom: '1px solid #f1f5f9',
+                    transition: 'background-color 0.15s ease',
+                    backgroundColor: isSelected ? '#f5f3ff' : 'transparent',
                     cursor: onRowClick ? 'pointer' : 'default'
                   }}
                   onClick={() => onRowClick && onRowClick(prod)}
@@ -225,7 +225,7 @@ const ProductTableUI = memo(function ProductTableUI({
                   onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
                 >
                   {showCheckboxes && (
-                    <td data-label="Seleccionar" style={{ padding: '0.5rem 0.4rem', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                    <td data-label="Seleccionar" style={{ padding: '0.65rem 0.5rem', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
                       <input 
                         type="checkbox" 
                         checked={isSelected}
@@ -234,15 +234,15 @@ const ProductTableUI = memo(function ProductTableUI({
                       />
                     </td>
                   )}
-                  <td data-label="Producto" style={{ padding: '0.5rem 0.4rem' }} className="full-width">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <td data-label="Producto" style={{ padding: '0.65rem 0.75rem' }} className="full-width">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <div 
                         style={{ 
-                          width: '32px', 
-                          height: '32px', 
-                          flexShrink: 0, 
-                          backgroundColor: '#f1f5f9', 
-                          borderRadius: '6px', 
+                          width: '38px',
+                          height: '38px',
+                          flexShrink: 0,
+                          backgroundColor: '#f8fafc',
+                          borderRadius: '10px', 
                           display: 'flex', 
                           alignItems: 'center', 
                           justifyContent: 'center', 
@@ -276,8 +276,8 @@ const ProductTableUI = memo(function ProductTableUI({
                             display: 'flex', 
                             alignItems: 'center', 
                             justifyContent: 'center', 
-                            backgroundColor: '#eff6ff', 
-                            color: '#3b82f6', 
+                            backgroundColor: '#f5f3ff',
+                            color: '#7c3aed', 
                             fontWeight: 'bold', 
                             fontSize: '0.75rem',
                             zIndex: 1
@@ -320,9 +320,9 @@ const ProductTableUI = memo(function ProductTableUI({
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.1rem' }}>
                           {onRowClick ? (
-                             <div style={{ color: '#0ea5e9', fontWeight: '600', fontSize: '0.85rem', wordBreak: 'break-word', overflow: 'hidden' }}>{prod.name}</div>
+                             <div className="font-semibold text-slate-800 text-sm hover:text-purple-600 transition-colors" style={{ wordBreak: 'break-word', overflow: 'hidden' }}>{prod.name}</div>
                           ) : (
-                             <Link href={`/productos/${prod.id}`} style={{ color: '#0ea5e9', fontWeight: '600', textDecoration: 'none', display: 'block', fontSize: '0.85rem', wordBreak: 'break-word', overflow: 'hidden' }}>
+                             <Link href={`/productos/${prod.id}`} className="font-semibold text-slate-800 text-sm hover:text-purple-600 transition-colors" style={{ textDecoration: 'none', display: 'block', wordBreak: 'break-word', overflow: 'hidden' }}>
                                {prod.name}
                              </Link>
                           )}
@@ -399,8 +399,8 @@ const ProductTableUI = memo(function ProductTableUI({
                             );
                           })()}
                         </div>
-                        <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>
-                          SKU: {prod.sku || '-'} | Código: {prod.barcode || '-'}
+                        <div className="text-slate-400 text-xs font-mono mt-0.5">
+                          SKU: <span className="text-slate-600">{prod.sku || '-'}</span> | Código: <span className="text-slate-600">{prod.barcode || '-'}</span>
                         </div>
                       </div>
                     </div>
@@ -416,27 +416,11 @@ const ProductTableUI = memo(function ProductTableUI({
                     onMouseLeave={() => setHoveredProductId(null)}
                   >
                     {prod.isService ? (
-                      <span style={{ 
-                        backgroundColor: '#dbeafe', 
-                        color: '#2563eb',
-                        padding: '0.15rem 0.4rem',
-                        borderRadius: '999px',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        whiteSpace: 'nowrap'
-                      }}>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/80 whitespace-nowrap">
                         Servicio
                       </span>
                     ) : (
-                      <span style={{ 
-                        backgroundColor: prod.stock > 0 ? '#dcfce7' : '#fee2e2', 
-                        color: prod.stock > 0 ? '#16a34a' : '#dc2626',
-                        padding: '0.15rem 0.4rem',
-                        borderRadius: '999px',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        whiteSpace: 'nowrap'
-                      }}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${prod.stock > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' : 'bg-rose-50 text-rose-700 border border-rose-200/80'}`}>
                         {prod.stock}
                       </span>
                     )}
@@ -488,11 +472,11 @@ const ProductTableUI = memo(function ProductTableUI({
                       </div>
                     )}
                   </td>
-                  <td data-label="Precio" style={{ padding: '0.5rem 0.4rem', color: '#0f172a', textAlign: 'right', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                  <td data-label="Precio" style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }} className="font-black text-slate-900 text-sm tabular-nums">
                     {formatCurrency(parseFloat((priceExtractor ? priceExtractor(prod) : prod.price) || 0))}
                   </td>
                   {renderCustomActions && (
-                    <td className="no-label" style={{ padding: '0.5rem 0.4rem', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                    <td className="no-label" style={{ padding: '0.65rem 0.5rem', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                       {renderCustomActions(prod)}
                     </td>
                   )}

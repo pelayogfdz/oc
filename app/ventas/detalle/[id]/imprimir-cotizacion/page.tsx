@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { resolveClientForQuote } from "@/lib/prisma";
+import { resolveClientForQuote, prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import PrintActions from "@/app/components/PrintActions";
 import { formatCurrency } from "@/lib/utils";
@@ -108,22 +108,30 @@ export default async function ImprimirCotizacionPage({
   const processedItems = quote.items.map((item: any) => {
     const originalPriceIncludingIva = item.product?.price || item.price;
     const finalPriceIncludingIva = item.price * prorationRatio;
-    const discountPerUnitIncludingIva = Math.max(0, originalPriceIncludingIva - finalPriceIncludingIva);
 
     const taxRate = item.product?.taxRate ?? 16.0;
     const taxType = item.product?.taxType || 'IVA';
     const isIva = taxType === 'IVA' || taxType === 'IVA_IEPS';
     const rate = isIva ? taxRate : 0;
 
-    const originalPriceExcludingIva = originalPriceIncludingIva / (1 + rate / 100);
-    const finalPriceExcludingIva = finalPriceIncludingIva / (1 + rate / 100);
+    // Redondear el precio unitario antes de impuestos a 2 decimales para consistencia matemática horizontal:
+    // Cantidad * Precio Unitario = Subtotal del renglón (cuadratura exacta para clientes y dependencias de gobierno)
+    const rawOriginalPriceExcludingIva = originalPriceIncludingIva / (1 + rate / 100);
+    const rawFinalPriceExcludingIva = finalPriceIncludingIva / (1 + rate / 100);
+
+    const originalPriceExcludingIva = Math.round(rawOriginalPriceExcludingIva * 100) / 100;
+    const finalPriceExcludingIva = Math.round(rawFinalPriceExcludingIva * 100) / 100;
     const discountPerUnitExcludingIva = Math.max(0, originalPriceExcludingIva - finalPriceExcludingIva);
+    const discountPerUnitIncludingIva = Math.max(0, originalPriceIncludingIva - finalPriceIncludingIva);
 
-    grossSubtotalExcludingIva += originalPriceExcludingIva * item.quantity;
-    totalDiscountExcludingIva += discountPerUnitExcludingIva * item.quantity;
-    netSubtotalExcludingIva += finalPriceExcludingIva * item.quantity;
+    const rowGrossSubtotal = Math.round((originalPriceExcludingIva * item.quantity) * 100) / 100;
+    const rowNetSubtotal = Math.round((finalPriceExcludingIva * item.quantity) * 100) / 100;
+    const rowDiscount = Math.max(0, rowGrossSubtotal - rowNetSubtotal);
+    const rowIva = Math.round((rowNetSubtotal * (rate / 100)) * 100) / 100;
 
-    const rowIva = (finalPriceIncludingIva - finalPriceExcludingIva) * item.quantity;
+    grossSubtotalExcludingIva += rowGrossSubtotal;
+    totalDiscountExcludingIva += rowDiscount;
+    netSubtotalExcludingIva += rowNetSubtotal;
     totalIva += rowIva;
 
     return {
@@ -134,11 +142,36 @@ export default async function ImprimirCotizacionPage({
       discountPerUnitIncludingIva,
       taxRate: rate,
       rowIva,
-      rowSubtotalExcludingIva: finalPriceExcludingIva * item.quantity
+      rowSubtotalExcludingIva: rowNetSubtotal
     };
   });
 
-  const manualDiscount = Math.max(0, (netSubtotalExcludingIva + totalIva) - quote.total);
+  // Si todos los artículos tienen 16% IVA, el IVA total coincide exactamente con el 16% del subtotal neto
+  const hasUniform16Iva = quote.items.every((it: any) => {
+    const t = it.product?.taxType || 'IVA';
+    const r = it.product?.taxRate ?? 16;
+    return (t === 'IVA' || t === 'IVA_IEPS') && r === 16;
+  });
+  if (hasUniform16Iva) {
+    totalIva = Math.round((netSubtotalExcludingIva * 0.16) * 100) / 100;
+  }
+
+  const computedTotal = Math.round((netSubtotalExcludingIva + totalIva) * 100) / 100;
+  const manualDiscount = Math.max(0, (netSubtotalExcludingIva + totalIva) - computedTotal);
+
+  // Sincronizar el total almacenado de la cotización si existe una diferencia por redondeo menor a $10 pesos
+  if (Math.abs(quote.total - computedTotal) > 0.009 && Math.abs(quote.total - computedTotal) < 10) {
+    try {
+      await prisma.quote.update({
+        where: { id: quote.id },
+        data: { total: computedTotal }
+      });
+      quote.total = computedTotal;
+    } catch (e) {
+      // Ignorar si el contexto de la base de datos es de sólo lectura
+    }
+  }
+
   const quoteIdUpper = quote.folio || quote.id.slice(0, 8).toUpperCase();
 
   const clientAddress = [

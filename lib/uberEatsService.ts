@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { prisma } from '@/lib/prisma';
+import { prisma, masterClient, getClientForTenant } from '@/lib/prisma';
 
 export interface UberEatsConfig {
   appId: string;
@@ -295,8 +295,15 @@ export async function processUberEatsOrder(
 ) {
   const orderId = order.id || order.order_id || String(order.display_id || Date.now());
 
+  // Resolve tenant database client
+  const branchRecord = await masterClient.branch.findUnique({
+    where: { id: branchId }
+  }).catch(() => null);
+  const tenantId = branchRecord?.tenantId || null;
+  const db: any = tenantId ? getClientForTenant(tenantId) : prisma;
+
   // 1. Deduplication check: verify if order was already recorded
-  const existingSale = await prisma.sale.findFirst({
+  const existingSale = await db.sale.findFirst({
     where: {
       branchId,
       notes: { contains: orderId }
@@ -308,25 +315,64 @@ export async function processUberEatsOrder(
     return existingSale;
   }
 
-  // 2. Resolve default user for sales creation in this branch
-  let responsibleUserId = userId;
-  if (!responsibleUserId) {
-    const branch = await prisma.branch.findUnique({
-      where: { id: branchId },
-      include: { users: { take: 1 } }
-    });
-    responsibleUserId = branch?.users[0]?.id;
-    if (!responsibleUserId) {
-      const anyUser = await prisma.user.findFirst({
-        where: { branchId }
-      });
-      responsibleUserId = anyUser?.id;
+  // 2. Resolve or create seller user "UBER EATS" for this sale
+  let uberUser = await db.user.findFirst({
+    where: {
+      name: 'UBER EATS'
+    }
+  });
+
+  if (!uberUser) {
+    const emailCandidate = `ubereats_${tenantId ? tenantId.substring(0, 8) : 'pos'}@caanma.com`;
+    const existingByEmail = await db.user.findUnique({ where: { email: emailCandidate } }).catch(() => null);
+    if (existingByEmail) {
+      uberUser = existingByEmail;
+      if (uberUser.name !== 'UBER EATS') {
+        uberUser = await db.user.update({
+          where: { id: uberUser.id },
+          data: { name: 'UBER EATS' }
+        }).catch(() => existingByEmail);
+      }
+    } else {
+      try {
+        uberUser = await db.user.create({
+          data: {
+            name: 'UBER EATS',
+            email: emailCandidate,
+            password: '$2b$10$dummyhashplaceholderforubereatswhichcannotlogin12345',
+            role: 'USER',
+            branchId,
+            ...(tenantId ? { tenantId } : {})
+          }
+        });
+      } catch (e) {
+        console.warn('[Uber Eats] Could not create UBER EATS user:', e);
+        uberUser = await db.user.findFirst({ where: { name: 'UBER EATS' } }).catch(() => null);
+      }
     }
   }
 
+  let responsibleUserId = uberUser?.id;
+
+  if (!responsibleUserId && userId) {
+    const userExists = await db.user.findUnique({ where: { id: userId } }).catch(() => null);
+    if (userExists) responsibleUserId = userExists.id;
+  }
+
   if (!responsibleUserId) {
-    const masterUser = await prisma.user.findFirst();
-    responsibleUserId = masterUser?.id || 'system';
+    const branchUser = await db.user.findFirst({
+      where: { branchId }
+    });
+    responsibleUserId = branchUser?.id;
+  }
+
+  if (!responsibleUserId) {
+    const anyUser = await db.user.findFirst();
+    responsibleUserId = anyUser?.id;
+  }
+
+  if (!responsibleUserId) {
+    throw new Error(`No se encontró un usuario válido en la base de datos para la sucursal ${branchId}`);
   }
 
   // 3. Resolve or create customer for Uber Eats
@@ -335,7 +381,7 @@ export async function processUberEatsOrder(
     : 'Cliente Uber Eats';
   const clientPhone = order.eater?.phone || '0000000000';
 
-  let customer = await prisma.customer.findFirst({
+  let customer = await db.customer.findFirst({
     where: {
       branchId,
       name: clientName
@@ -343,7 +389,7 @@ export async function processUberEatsOrder(
   });
 
   if (!customer) {
-    customer = await prisma.customer.create({
+    customer = await db.customer.create({
       data: {
         name: clientName,
         phone: clientPhone,
@@ -365,7 +411,7 @@ export async function processUberEatsOrder(
 
     // Look for product map by externalId first
     let localProduct = null;
-    const map = await prisma.externalProductMap.findFirst({
+    const map = await db.externalProductMap.findFirst({
       where: {
         platform: 'UBER_EATS',
         externalId: String(externalId),
@@ -380,21 +426,21 @@ export async function processUberEatsOrder(
 
     // Fallback: match by local SKU
     if (!localProduct && item.external_data) {
-      localProduct = await prisma.product.findFirst({
+      localProduct = await db.product.findFirst({
         where: { sku: item.external_data, branchId }
       });
     }
 
     // Fallback: match by product title / name
     if (!localProduct && item.title) {
-      localProduct = await prisma.product.findFirst({
+      localProduct = await db.product.findFirst({
         where: { name: { equals: item.title, mode: 'insensitive' }, branchId }
       });
     }
 
     // Fallback: if not found, use first product
     if (!localProduct) {
-      localProduct = await prisma.product.findFirst({
+      localProduct = await db.product.findFirst({
         where: { branchId }
       });
     }
@@ -410,13 +456,13 @@ export async function processUberEatsOrder(
       totalOrderAmount += priceToUse * itemQuantity;
 
       // Decrement stock
-      await prisma.product.update({
+      await db.product.update({
         where: { id: localProduct.id },
         data: { stock: { decrement: itemQuantity } }
       });
 
       // Create inventory movement
-      await prisma.inventoryMovement.create({
+      await db.inventoryMovement.create({
         data: {
           productId: localProduct.id,
           type: 'OUT',
@@ -436,7 +482,7 @@ export async function processUberEatsOrder(
   const cleanFolio = `UB-${order.display_id || String(orderId).substring(0, 8).toUpperCase()}`;
 
   // 6. Create the Sale in CAANMA
-  const newSale = await prisma.sale.create({
+  const newSale = await db.sale.create({
     data: {
       folio: cleanFolio,
       total: calculatedTotal,

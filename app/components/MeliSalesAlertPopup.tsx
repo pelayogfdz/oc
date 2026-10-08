@@ -128,12 +128,14 @@ export default function MeliSalesAlertPopup() {
   // Estilos y badges según el canal
   const isMeli = activeSale.channel === 'MERCADO_LIBRE';
   const isGooglePay = activeSale.channel === 'GOOGLE_PAY';
+  const isUber = activeSale.channel === 'UBER_EATS';
+  const isRappi = activeSale.channel === 'RAPPI';
   const isB2C = activeSale.channel === 'B2C_WEB' || activeSale.channel === 'ONLINE_GENERIC';
 
-  const themeBorderColor = isMeli ? '#f59e0b' : isGooglePay ? '#6366f1' : '#10b981';
-  const themeBgBadge = isMeli ? '#fffbeb' : isGooglePay ? '#eef2ff' : '#ecfdf5';
-  const themeBorderBadge = isMeli ? '#fde68a' : isGooglePay ? '#c7d2fe' : '#a7f3d0';
-  const themeTextBadge = isMeli ? '#b45309' : isGooglePay ? '#4338ca' : '#047857';
+  const themeBorderColor = isMeli ? '#f59e0b' : isUber ? '#06C167' : isRappi ? '#FF441F' : isGooglePay ? '#6366f1' : '#10b981';
+  const themeBgBadge = isMeli ? '#fffbeb' : isUber ? '#f0fdf4' : isRappi ? '#fff7ed' : isGooglePay ? '#eef2ff' : '#ecfdf5';
+  const themeBorderBadge = isMeli ? '#fde68a' : isUber ? '#bbf7d0' : isRappi ? '#fed7aa' : isGooglePay ? '#c7d2fe' : '#a7f3d0';
+  const themeTextBadge = isMeli ? '#b45309' : isUber ? '#15803d' : isRappi ? '#c2410c' : isGooglePay ? '#4338ca' : '#047857';
 
   return (
     <div style={{
@@ -168,7 +170,7 @@ export default function MeliSalesAlertPopup() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: themeBorderColor }}>
           <BellRing size={20} style={{ animation: 'bellRingAlert 1.5s infinite ease-in-out' }} />
           <span style={{ fontWeight: '800', fontSize: '0.95rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            {isMeli ? '¡Nueva Venta Mercado Libre!' : isGooglePay ? '¡Nueva Venta Google Pay!' : '¡Nueva Compra Web (B2C)!'}
+            {isMeli ? '¡Nueva Venta Mercado Libre!' : isUber ? '¡Nuevo Pedido Uber Eats! 🛵' : isRappi ? '¡Nuevo Pedido Rappi! 🍊' : isGooglePay ? '¡Nueva Venta Google Pay!' : '¡Nueva Compra Web (B2C)!'}
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -219,7 +221,7 @@ export default function MeliSalesAlertPopup() {
         border: `1px solid ${themeBorderBadge}`
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-          {isMeli ? <ShoppingBag size={16} color={themeTextBadge} /> : isGooglePay ? <CreditCard size={16} color={themeTextBadge} /> : <Globe size={16} color={themeTextBadge} />}
+          {isMeli ? <ShoppingBag size={16} color={themeTextBadge} /> : isUber ? <span style={{ fontSize: '15px' }}>🛵</span> : isRappi ? <span style={{ fontSize: '15px' }}>🍊</span> : isGooglePay ? <CreditCard size={16} color={themeTextBadge} /> : <Globe size={16} color={themeTextBadge} />}
           <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: themeTextBadge }}>
             {activeSale.channelLabel}
           </span>

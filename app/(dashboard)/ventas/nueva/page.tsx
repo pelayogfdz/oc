@@ -78,6 +78,17 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
             priceListId: true,
             price: true
           }
+        },
+        batches: {
+          where: { stock: { gt: 0 } },
+          select: {
+            id: true,
+            batchNumber: true,
+            expirationDate: true,
+            stock: true,
+            cost: true
+          },
+          orderBy: { expirationDate: 'asc' }
         }
       },
       orderBy: { name: 'asc' },

@@ -50,10 +50,25 @@ export async function saveIntegrationTokens(formData: FormData) {
 
 export async function deleteIntegration(formData: FormData) {
   const branch = await getActiveBranch();
-  const platform = formData.get('platform') as string;
+  const rawPlatform = (formData.get('platform') as string || '').trim();
+  const targetBranchId = (formData.get('branchId') as string || '').trim() || (branch?.id !== 'GLOBAL' ? branch?.id : '');
   
-  const existing = await prisma.storeIntegration.findUnique({
-    where: { branchId_platform: { branchId: branch.id, platform } }
+  const normalized = rawPlatform.toLowerCase().replace(/[-_]/g, '');
+  const platformVariants = [
+    rawPlatform,
+    rawPlatform.toUpperCase(),
+    rawPlatform.toLowerCase(),
+    normalized
+  ];
+  if (normalized.includes('ubereats') || normalized === 'uber') {
+    platformVariants.push('UBER_EATS', 'uber_eats', 'ubereats');
+  }
+
+  const existing = await prisma.storeIntegration.findFirst({
+    where: { 
+      ...(targetBranchId ? { branchId: targetBranchId } : {}),
+      platform: { in: platformVariants } 
+    }
   });
 
   if (existing) {
@@ -63,7 +78,11 @@ export async function deleteIntegration(formData: FormData) {
   }
 
   revalidatePath('/integraciones');
-  revalidatePath(`/integraciones/${platform.toLowerCase()}`);
+  if (normalized.includes('ubereats') || normalized === 'uber') {
+    revalidatePath('/integraciones/ubereats');
+  } else if (rawPlatform) {
+    revalidatePath(`/integraciones/${rawPlatform.toLowerCase()}`);
+  }
 }
 
 export async function saveMeliPricingConfig(formData: FormData) {
@@ -1579,8 +1598,16 @@ export async function saveUberEatsConfig(formData: FormData) {
     throw new Error('El Client ID y Client Secret de Uber Eats son obligatorios.');
   }
 
-  const existing = await prisma.storeIntegration.findUnique({
-    where: { branchId_platform: { branchId: branch.id, platform: 'UBER_EATS' } }
+  const targetBranchId = (formData.get('branchId') as string || '').trim() || (branch.id !== 'GLOBAL' ? branch.id : '');
+  if (!targetBranchId) {
+    throw new Error('Debes seleccionar una sucursal válida para guardar la configuración.');
+  }
+
+  const existing = await prisma.storeIntegration.findFirst({
+    where: { 
+      branchId: targetBranchId, 
+      platform: { in: ['UBER_EATS', 'uber_eats', 'ubereats'] } 
+    }
   });
 
   const metadataObj = {
@@ -1595,6 +1622,7 @@ export async function saveUberEatsConfig(formData: FormData) {
     await prisma.storeIntegration.update({
       where: { id: existing.id },
       data: {
+        platform: 'UBER_EATS',
         appId,
         clientSecret,
         accessToken: storeId,
@@ -1605,7 +1633,7 @@ export async function saveUberEatsConfig(formData: FormData) {
   } else {
     await prisma.storeIntegration.create({
       data: {
-        branchId: branch.id,
+        branchId: targetBranchId,
         platform: 'UBER_EATS',
         appId,
         clientSecret,
@@ -1655,4 +1683,237 @@ export async function unmapProductFromUberEats(mapId: string) {
   });
 
   revalidatePath('/integraciones/ubereats');
+}
+
+/**
+ * Sincroniza la disponibilidad/stock de un producto hacia Uber Eats
+ * Si la sincronización en vivo está desactivada (modo simulación/auditoría),
+ * actualiza el estado en el mapa local reflejando el espejo de CAANMA sin alterar la tienda real.
+ */
+export async function syncUberEatsInventoryAction(productId: string, tenantId: string | null) {
+  if (!productId) return { success: false, reason: 'No productId provided' };
+
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        externalMaps: {
+          where: { platform: 'UBER_EATS' }
+        },
+        branch: true
+      }
+    });
+
+    if (!product || !product.externalMaps || product.externalMaps.length === 0) {
+      return { success: false, reason: 'Producto no emparejado con Uber Eats' };
+    }
+
+    const branchId = product.branchId;
+    if (!branchId) return { success: false, reason: 'Producto sin sucursal asignada' };
+
+    const integration = await prisma.storeIntegration.findUnique({
+      where: { branchId_platform: { branchId, platform: 'UBER_EATS' } }
+    });
+
+    if (!integration || !integration.isActive) {
+      return { success: false, reason: 'Integración Uber Eats inactiva para la sucursal' };
+    }
+
+    let meta: any = {};
+    try {
+      if (integration.metadata) meta = JSON.parse(integration.metadata);
+    } catch (e) {}
+
+    const storeId = meta.storeId || integration.accessToken;
+    const isSandbox = Boolean(meta.isSandbox);
+    const syncInventoryEnabled = Boolean(meta.syncInventoryEnabled); // Falso por defecto según instrucción del usuario
+    const isOutOfStock = product.stock <= 0;
+
+    const results = [];
+
+    for (const map of product.externalMaps) {
+      if (!syncInventoryEnabled) {
+        // MODO SIMULADO / AUDITORÍA: Refleja el estado como espejo de CAANMA de forma segura
+        const newSyncStatus = isOutOfStock ? 'SIMULATED_SUSPENDED' : 'SIMULATED_SYNCED';
+        await prisma.externalProductMap.update({
+          where: { id: map.id },
+          data: {
+            syncStatus: newSyncStatus,
+            lastSync: new Date()
+          }
+        });
+
+        console.log(`[Uber Eats Mirror (Simulado)] Producto "${product.name}" (Stock: ${product.stock}). Estado espejo: ${isOutOfStock ? '🔴 Agotado / Suspendido' : '🟢 Disponible'} (Modo seguro, sin llamada a API externa).`);
+        results.push({
+          mapId: map.id,
+          externalId: map.externalId,
+          syncStatus: newSyncStatus,
+          stock: product.stock,
+          mode: 'SIMULATED'
+        });
+      } else {
+        // MODO EN VIVO: Llama a la API oficial de Uber Eats para suspender o reanudar
+        try {
+          const { getUberEatsAccessToken, updateUberItemSuspension } = await import('@/lib/uberEatsService');
+          if (!integration.appId || !integration.clientSecret || !storeId) {
+            throw new Error('Faltan credenciales completas de Uber Eats');
+          }
+          const token = await getUberEatsAccessToken(integration.appId, integration.clientSecret, isSandbox);
+          await updateUberItemSuspension(storeId, map.externalId, isOutOfStock, token, isSandbox);
+
+          const liveStatus = isOutOfStock ? 'SUSPENDED_OUT_OF_STOCK' : 'SYNCED';
+          await prisma.externalProductMap.update({
+            where: { id: map.id },
+            data: {
+              syncStatus: liveStatus,
+              lastSync: new Date()
+            }
+          });
+
+          console.log(`[Uber Eats Mirror (En Vivo)] Actualizado ítem ${map.externalId} en Uber Eats a ${isOutOfStock ? 'SUSPENDIDO' : 'DISPONIBLE'}.`);
+          results.push({
+            mapId: map.id,
+            externalId: map.externalId,
+            syncStatus: liveStatus,
+            stock: product.stock,
+            mode: 'LIVE'
+          });
+        } catch (apiErr: any) {
+          console.error(`[Uber Eats Mirror] Error al llamar API de Uber Eats para ${map.externalId}:`, apiErr.message);
+          results.push({
+            mapId: map.id,
+            externalId: map.externalId,
+            error: apiErr.message,
+            mode: 'LIVE_FAILED'
+          });
+        }
+      }
+    }
+
+    return {
+      success: true,
+      productId: product.id,
+      productName: product.name,
+      stock: product.stock,
+      syncInventoryEnabled,
+      results
+    };
+  } catch (error: any) {
+    console.error(`[syncUberEatsInventoryAction] Error general:`, error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Empareja en lote todos los productos activos de CAANMA para Uber Eats
+ * generando el espejo de catálogo inicial.
+ */
+export async function batchMapCatalogToUberEats(branchId?: string) {
+  const currentBranch = await getActiveBranch();
+  const targetBranchId = branchId || (currentBranch.id !== 'GLOBAL' ? currentBranch.id : '');
+
+  const products = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      ...(targetBranchId ? { branchId: targetBranchId } : {})
+    },
+    include: {
+      externalMaps: {
+        where: { platform: 'UBER_EATS' }
+      }
+    }
+  });
+
+  let mappedCount = 0;
+
+  for (const product of products) {
+    const existingMap = product.externalMaps[0];
+    const isOutOfStock = product.stock <= 0;
+    const initialStatus = isOutOfStock ? 'SIMULATED_SUSPENDED' : 'SIMULATED_SYNCED';
+    const externalId = product.sku?.trim() || product.barcode?.trim() || `ITEM-${product.id.substring(0, 8).toUpperCase()}`;
+
+    if (existingMap) {
+      await prisma.externalProductMap.update({
+        where: { id: existingMap.id },
+        data: {
+          syncStatus: initialStatus,
+          lastSync: new Date()
+        }
+      });
+    } else {
+      await prisma.externalProductMap.create({
+        data: {
+          productId: product.id,
+          platform: 'UBER_EATS',
+          externalId,
+          syncStatus: initialStatus,
+          lastSync: new Date()
+        }
+      });
+      mappedCount++;
+    }
+  }
+
+  revalidatePath('/integraciones/ubereats');
+  return {
+    success: true,
+    totalProducts: products.length,
+    newlyMapped: mappedCount
+  };
+}
+
+/**
+ * Simula un cambio de stock en CAANMA y reporta cómo reacciona el espejo de Uber Eats.
+ */
+export async function simulateUberStockChangeEvent(productId: string, newStock: number) {
+  if (!productId || typeof newStock !== 'number') {
+    throw new Error('Producto y nuevo stock son requeridos.');
+  }
+
+  const updatedProduct = await prisma.product.update({
+    where: { id: productId },
+    data: { stock: newStock }
+  });
+
+  const syncResult = await syncUberEatsInventoryAction(productId, null);
+
+  revalidatePath('/integraciones/ubereats');
+  return {
+    success: true,
+    productName: updatedProduct.name,
+    stock: updatedProduct.stock,
+    isOutOfStock: updatedProduct.stock <= 0,
+    syncResult
+  };
+}
+
+/**
+ * Habilita o deshabilita la sincronización en vivo del inventario con Uber Eats
+ */
+export async function toggleUberInventorySync(branchId: string, enabled: boolean) {
+  if (!branchId) throw new Error('Sucursal requerida');
+
+  const integration = await prisma.storeIntegration.findUnique({
+    where: { branchId_platform: { branchId, platform: 'UBER_EATS' } }
+  });
+
+  if (!integration) throw new Error('Integración de Uber Eats no encontrada para esta sucursal');
+
+  let meta: any = {};
+  try {
+    if (integration.metadata) meta = JSON.parse(integration.metadata);
+  } catch (e) {}
+
+  meta.syncInventoryEnabled = enabled;
+  meta.updatedAt = new Date().toISOString();
+
+  await prisma.storeIntegration.update({
+    where: { id: integration.id },
+    data: {
+      metadata: JSON.stringify(meta)
+    }
+  });
+
+  revalidatePath('/integraciones/ubereats');
+  return { success: true, enabled };
 }

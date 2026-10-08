@@ -47,6 +47,7 @@ export default async function PrintVentaTicketPage({ params }: { params: Promise
   const paperWidth = ticketConfig.anchoTicket === '58mm' || impresorasConfig.receiptWidth === '58mm' ? '58mm' : '80mm';
   const is58 = paperWidth === '58mm';
   const ticketLogo = ticketConfig.logoRecibo || ticketConfig.globalLogo;
+  const isUber = (sale.notes && (sale.notes.includes('Uber') || sale.notes.includes('UBER') || sale.notes.includes('uber'))) || sale.paymentMethod === 'UBER_EATS' || (sale.folio && sale.folio.startsWith('UB-'));
 
   const style = is58 ? `
     body { font-family: 'Courier New', Courier, monospace; font-size: 11px; margin: 0; padding: 2px; color: #000; width: 190px; background: white; }
@@ -208,7 +209,7 @@ export default async function PrintVentaTicketPage({ params }: { params: Promise
           </div>
           <div className="info-row">
             <span>Atendió:</span>
-            <span>{sale.user?.name || 'Cajero'}</span>
+            <span>{isUber ? 'UBER EATS' : (sale.user?.name || 'Cajero')}</span>
           </div>
           <div className="info-row">
             <span>Folio Web:</span>

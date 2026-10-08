@@ -24,6 +24,7 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
   const facturaConfig = config?.formatos_factura || {};
   const logoUrl = facturaConfig?.logoUrl || globalLogoUrl;
   const { primaryColor = '#8b5cf6', showProductSKU = false, footerNotes = '', showTaxBreakdown = false } = facturaConfig || {};
+  const isUber = (sale.notes && (sale.notes.includes('Uber') || sale.notes.includes('UBER') || sale.notes.includes('uber'))) || sale.paymentMethod === 'UBER_EATS' || (sale.folio && sale.folio.startsWith('UB-'));
 
   // Auto-print script
   const printScript = `
@@ -176,12 +177,12 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
                 <tr>
                   <td style={{ color: '#64748b', padding: '0.35rem 0', fontWeight: '500' }}>Método de Pago:</td>
                   <td style={{ fontWeight: '600', textAlign: 'right', color: '#0f172a' }}>
-                    {sale.paymentMethod === 'CASH' ? 'Efectivo' : sale.paymentMethod === 'CARD' ? 'Tarjeta' : sale.paymentMethod === 'CARD_CREDIT' ? 'Tarjeta de Crédito' : sale.paymentMethod === 'CARD_DEBIT' ? 'Tarjeta de Débito' : sale.paymentMethod === 'CREDIT' ? 'Crédito' : sale.paymentMethod}
+                    {sale.paymentMethod === 'CASH' ? 'Efectivo' : sale.paymentMethod === 'CARD' ? 'Tarjeta' : sale.paymentMethod === 'CARD_CREDIT' ? 'Tarjeta de Crédito' : sale.paymentMethod === 'CARD_DEBIT' ? 'Tarjeta de Débito' : sale.paymentMethod === 'CREDIT' ? 'Crédito' : sale.paymentMethod === 'UBER_EATS' ? 'Uber Eats' : sale.paymentMethod}
                   </td>
                 </tr>
                 <tr>
                   <td style={{ color: '#64748b', padding: '0.35rem 0', fontWeight: '500' }}>Vendedor:</td>
-                  <td style={{ fontWeight: '600', textAlign: 'right', color: '#0f172a' }}>{sale.user?.name || 'Sistema'}</td>
+                  <td style={{ fontWeight: '600', textAlign: 'right', color: '#0f172a' }}>{isUber ? 'UBER EATS' : (sale.user?.name || 'Sistema')}</td>
                 </tr>
               </tbody>
             </table>

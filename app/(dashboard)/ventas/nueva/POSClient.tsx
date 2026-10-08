@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, X, Clock, FolderOpen, Trash2, ShoppingBag, Plus, Percent, Tag, PlusCircle, MoreVertical, Truck, Sparkles } from 'lucide-react';
+import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, X, Clock, FolderOpen, Trash2, ShoppingBag, Plus, Percent, Tag, PlusCircle, MoreVertical, Truck, Sparkles, Package } from 'lucide-react';
 import QRCode from 'qrcode';
 import { createSale, sendSaleByEmail } from '@/app/actions/sale';
 import { sendInvoiceByEmail } from '@/app/actions/facturacion';
@@ -1028,6 +1028,7 @@ export default function POSClient({
   
   // Checkout Modal State
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [selectedItemBatches, setSelectedItemBatches] = useState<Record<string, string>>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [documentType, setDocumentType] = useState<'TICKET' | 'FACTURA'>('TICKET');
   
@@ -3015,6 +3016,7 @@ export default function POSClient({
         return { 
           productId: item.id, 
           variantId: item.variantId || null,
+          batchId: item.batchId || selectedItemBatches[item.cartItemId || item.id] || null,
           quantity: item.quantity, 
           price: Number(savedPrice.toFixed(6)),
           sku: item.sku || null,
@@ -5221,6 +5223,72 @@ export default function POSClient({
                  </div>
                </div>
             )}
+
+            {/* Asignación de Lotes y Caducidades */}
+            {(() => {
+              const itemsWithBatches = cart.filter(item => (item.batches && item.batches.length > 0) || (item.product?.batches && item.product.batches.length > 0));
+              if (itemsWithBatches.length === 0) return null;
+              return (
+                <div style={{ marginBottom: '1rem', padding: '0.85rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 'bold', color: '#0f172a', fontSize: '0.88rem' }}>
+                      <Package size={16} color="#0f172a" />
+                      <span>Selección de Lote / Caducidad</span>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '0.15rem 0.5rem', borderRadius: '12px', fontWeight: 'bold' }}>
+                      {itemsWithBatches.length} artículo(s)
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                    {itemsWithBatches.map(item => {
+                      const availableBatches = item.batches || item.product?.batches || [];
+                      const itemKey = item.cartItemId || item.id;
+                      const currentBatchId = selectedItemBatches[itemKey] || availableBatches[0]?.id || '';
+                      return (
+                        <div key={itemKey} style={{ backgroundColor: 'white', padding: '0.55rem 0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                            <span style={{ fontWeight: 600, fontSize: '0.82rem', color: '#1e293b' }}>
+                              {item.name}
+                            </span>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' }}>
+                              Cant: {item.quantity} {item.unit || 'pza'}
+                            </span>
+                          </div>
+                          <select
+                            value={currentBatchId}
+                            onChange={e => {
+                              const bId = e.target.value;
+                              setSelectedItemBatches(prev => ({ ...prev, [itemKey]: bId }));
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '0.4rem 0.5rem',
+                              fontSize: '0.78rem',
+                              borderRadius: '6px',
+                              border: '1px solid #94a3b8',
+                              backgroundColor: '#f8fafc',
+                              fontWeight: 500,
+                              outline: 'none',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {availableBatches.map((b: any, bIdx: number) => {
+                              const expDateFormatted = b.expirationDate ? new Date(b.expirationDate).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Sin fecha';
+                              const isRecommended = bIdx === 0;
+                              return (
+                                <option key={b.id} value={b.id}>
+                                  {isRecommended ? '⭐ (FEFO) ' : ''}Lote: {b.batchNumber || 'S/N'} | Caduca: {expDateFormatted} | Disp: {b.stock} pzas
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             {mode !== 'QUOTE' && (
               <div style={{ marginBottom: '1rem' }}>

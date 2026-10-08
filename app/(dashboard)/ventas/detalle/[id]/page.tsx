@@ -92,6 +92,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
   }
 
   const isMeli = (sale.notes && sale.notes.includes('Mercado Libre')) || (sale.folio && sale.folio.startsWith('ML-'));
+  const isUber = (sale.notes && (sale.notes.includes('Uber') || sale.notes.includes('UBER') || sale.notes.includes('uber'))) || sale.paymentMethod === 'UBER_EATS' || (sale.folio && sale.folio.startsWith('UB-'));
   let meliStatus = extractMeliStatus(sale.notes);
 
   if (isMeli && (!meliStatus || (!meliStatus.includes('Entregada') && !meliStatus.includes('Cancelada')))) {
@@ -245,6 +246,39 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
                   🛒 Mercado Libre
                 </div>
               </div>
+            ) : isUber ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                <div style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '0.35rem', 
+                  padding: '0.3rem 0.75rem', 
+                  borderRadius: '16px', 
+                  fontSize: '0.85rem', 
+                  fontWeight: 'bold', 
+                  backgroundColor: sale.status === 'CANCELLED' ? '#fee2e2' : sale.status === 'COMPLETED' ? '#e6fcf0' : '#fef3c7', 
+                  color: sale.status === 'CANCELLED' ? '#991b1b' : sale.status === 'COMPLETED' ? '#06C167' : '#b45309', 
+                  border: `1px solid ${sale.status === 'CANCELLED' ? '#fecaca' : sale.status === 'COMPLETED' ? '#bbf7d0' : '#fde68a'}`,
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}>
+                  <span>{sale.status === 'CANCELLED' ? '❌' : sale.status === 'COMPLETED' ? '🛵' : '⏳'}</span>
+                  <span>{sale.status === 'CANCELLED' ? 'Pedido Cancelado' : sale.status === 'COMPLETED' ? 'Pedido Entregado / Finalizado' : 'En Preparación'}</span>
+                </div>
+                <div style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '0.25rem', 
+                  padding: '0.3rem 0.65rem', 
+                  borderRadius: '16px', 
+                  fontSize: '0.78rem', 
+                  fontWeight: '700', 
+                  backgroundColor: '#f0fdf4', 
+                  color: '#15803d', 
+                  border: '1px solid #bbf7d0' 
+                }}>
+                  🛵 Uber Eats
+                </div>
+              </div>
             ) : (
               <div style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.25rem 0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold', backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : sale.status === 'CANCELLED' ? '#fee2e2' : '#fef3c7', color: sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#b45309' }}>
                 {sale.status === 'COMPLETED' ? 'Venta Concluida' : sale.status === 'CANCELLED' ? 'Cancelada' : sale.status === 'PENDING' ? 'Pendiente' : sale.status}
@@ -258,7 +292,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
              <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{new Date(sale.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
              <div style={{ fontSize: '1rem', color: '#64748b', marginTop: '0.5rem' }}>Método de Pago</div>
              <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#0ea5e9' }} className="break-all">
-                {sale.paymentMethod === 'CASH' ? 'Efectivo' : sale.paymentMethod === 'CARD' ? 'Tarjeta' : sale.paymentMethod === 'CARD_CREDIT' ? 'Tarjeta de Crédito' : sale.paymentMethod === 'CARD_DEBIT' ? 'Tarjeta de Débito' : sale.paymentMethod === 'TRANSFER' ? 'Transferencia' : sale.paymentMethod === 'CHECK' || sale.paymentMethod === 'CHEQUE' ? 'Cheque' : sale.paymentMethod}
+                {sale.paymentMethod === 'CASH' ? 'Efectivo' : sale.paymentMethod === 'CARD' ? 'Tarjeta' : sale.paymentMethod === 'CARD_CREDIT' ? 'Tarjeta de Crédito' : sale.paymentMethod === 'CARD_DEBIT' ? 'Tarjeta de Débito' : sale.paymentMethod === 'TRANSFER' ? 'Transferencia' : sale.paymentMethod === 'CHECK' || sale.paymentMethod === 'CHEQUE' ? 'Cheque' : sale.paymentMethod === 'UBER_EATS' ? 'Uber Eats' : sale.paymentMethod}
              </div>
           </div>
         </div>
@@ -325,7 +359,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
           <div className="text-left sm:text-right" style={{ flex: 1 }}>
              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase' }}>Emitido por:</h3>
              <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold', fontSize: '1.2rem' }}>{sale.branch?.name || 'Sucursal Matriz'}</p>
-             <p style={{ margin: 0, fontSize: '0.9rem', color: '#475569' }}>Atendido por: {sale.user?.name}</p>
+             <p style={{ margin: 0, fontSize: '0.9rem', color: '#475569' }}>Atendido por: {isUber ? 'UBER EATS' : (sale.user?.name || 'Sistema')}</p>
           </div>
         </div>
 
@@ -394,6 +428,58 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
         {/* Totals */}
         <div className="flex flex-col sm:flex-row justify-between mb-8 items-start gap-6 w-full">
           <div className="w-full sm:flex-1">
+             {isUber && (
+               <div style={{ 
+                 padding: '1rem', 
+                 backgroundColor: '#f0fdf4', 
+                 borderRadius: '10px', 
+                 border: '1px solid #bbf7d0',
+                 marginBottom: '1rem',
+                 boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+               }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.65rem' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                     <span style={{ fontSize: '1.25rem' }}>🛵</span>
+                     <h4 style={{ margin: 0, fontWeight: 'bold', fontSize: '0.95rem', color: '#166534' }}>
+                       Detalles de Entrega Uber Eats
+                     </h4>
+                   </div>
+                   <span style={{ 
+                     fontSize: '0.75rem', 
+                     fontWeight: '700', 
+                     backgroundColor: sale.status === 'CANCELLED' ? '#fee2e2' : sale.status === 'COMPLETED' ? '#dcfce7' : '#fef3c7', 
+                     color: sale.status === 'CANCELLED' ? '#991b1b' : sale.status === 'COMPLETED' ? '#15803d' : '#b45309', 
+                     padding: '0.2rem 0.6rem', 
+                     borderRadius: '999px',
+                     border: `1px solid ${sale.status === 'CANCELLED' ? '#fecaca' : sale.status === 'COMPLETED' ? '#86efac' : '#fde68a'}`
+                   }}>
+                     {sale.status === 'CANCELLED' ? '❌ Pedido Cancelado' : sale.status === 'COMPLETED' ? '✅ Pedido Entregado / Concluido' : '⏳ En Preparación'}
+                   </span>
+                 </div>
+
+                 {(() => {
+                   const idMatch = sale.notes?.match(/ID:\s*([^\s.|]+)/i);
+                   const orderUberId = idMatch ? idMatch[1] : null;
+                   const entregaMatch = sale.notes?.match(/Entrega:\s*([^|\r\n]+)/i);
+                   const address = entregaMatch ? entregaMatch[1].trim() : (sale.customer?.street ? `${sale.customer.street} ${sale.customer.exteriorNumber || ''}` : 'A domicilio');
+
+                   return (
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.875rem', color: '#334155' }}>
+                       {orderUberId && (
+                         <div>
+                           <strong style={{ color: '#0f172a' }}>ID de Orden Uber: </strong>
+                           <span style={{ fontFamily: 'monospace', backgroundColor: '#e2e8f0', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.85rem' }}>{orderUberId}</span>
+                         </div>
+                       )}
+                       <div>
+                         <strong style={{ color: '#0f172a' }}>Dirección de Entrega: </strong>
+                         <span>{address}</span>
+                       </div>
+                     </div>
+                   );
+                 })()}
+               </div>
+             )}
              {sale.notes && (() => {
                const shipmentMatch = sale.notes.match(/\/shipments\/(\d+)/);
                const shipmentId = shipmentMatch ? shipmentMatch[1] : null;

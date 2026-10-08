@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, TrendingUp, Package, Calculator, Users, Clock, ArrowRight, ChefHat, Tag, Landmark } from 'lucide-react';
+import { BarChart3, TrendingUp, Package, Calculator, Users, Clock, ArrowRight, ChefHat, Tag, Landmark, CalendarClock } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -39,6 +39,7 @@ export default function ReportesModuleClient({
     { title: 'Reporte de Insumos', icon: <ChefHat size={24} color="#8b5cf6" />, description: 'Sugerencia de compra de materias primas basada en recetas de productos vendidos.', route: '/reportes/insumos', requiredPermission: 'report_supplies' },
     { title: 'Uso de Insumos', icon: <ChefHat size={24} color="#0d9488" />, description: 'Historial detallado de consumo interno y uso de materias primas por sucursal.', route: '/reportes/uso-insumos', requiredPermission: 'report_supplies' },
     { title: 'Reporte de Producción', icon: <ChefHat size={24} color="#f59e0b" />, description: 'Sugerencias de fabricación basadas en ritmo de ventas y stock.', route: '/reportes/produccion', requiredPermission: 'report_production' },
+    { title: 'Lotes y Caducidades', icon: <CalendarClock size={24} color="#f59e0b" />, description: 'Auditoría de lotes, artículos vencidos, alertas de prevención y vencimientos futuros.', route: '/reportes/lotes-caducidades', requiredPermission: 'report_inventory_log' },
     { title: 'Bitácora de Inventario', icon: <Clock size={24} color="#8b5cf6" />, description: 'Movimientos, ajustes, entradas y salidas.', route: '/reportes/bitacora-inventario', requiredPermission: 'report_inventory_log' },
     { title: 'Consignaciones', icon: <Package size={24} color="#6366f1" />, description: 'Rendimiento y cobros de productos prestados a clientes.', route: '/reportes/consignaciones', requiredPermission: 'report_consignments' },
     { title: 'Gastos', icon: <Calculator size={24} color="#ef4444" />, description: 'Registro y análisis de egresos operativos.', route: '/productos/gastos', requiredPermission: 'report_expenses' },

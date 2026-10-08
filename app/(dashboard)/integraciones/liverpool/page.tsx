@@ -6,12 +6,14 @@ import Link from 'next/link';
 import LiverpoolCalculator from './Calculator';
 import BackButton from '@/app/components/ui/BackButton';
 
-export default async function LiverpoolConfigPage() {
+export default async function LiverpoolConfigPage({ searchParams }: { searchParams?: Promise<{ branchId?: string }> }) {
   const branch = await getActiveBranch();
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const targetBranchId = resolvedSearchParams.branchId || branch?.id || '';
   
-  const integration: any = await prisma.storeIntegration.findUnique({
-    where: { branchId_platform: { branchId: branch.id, platform: 'LIVERPOOL' } }
-  });
+  const integration: any = targetBranchId ? await prisma.storeIntegration.findFirst({
+    where: { branchId: targetBranchId, platform: { in: ['LIVERPOOL', 'liverpool'] } }
+  }) : null;
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>

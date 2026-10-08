@@ -25,7 +25,7 @@ describe('Atomic UI Components', () => {
     it('debe aplicar esquinas redondeadas y bordes sutiles', () => {
       const card = Card({ children: 'Contenido', hoverEffect: true });
       expect(card.props.className).toContain('rounded-2xl');
-      expect(card.props.className).toContain('border-slate-100');
+      expect(card.props.className).toContain('border-slate-200');
       expect(card.props.className).toContain('hover:shadow-md');
     });
 

@@ -45,9 +45,11 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
   });
   const tenantBranchIds = tenantBranchesList.map(b => b.id);
 
-  let integration = await prisma.storeIntegration.findUnique({
-    where: { branchId_platform: { branchId: branch.id, platform: 'MERCADO_LIBRE' } }
-  });
+  const targetBranchId = (resolvedSearchParams as any)?.branchId || branch?.id;
+
+  let integration = targetBranchId ? await prisma.storeIntegration.findFirst({
+    where: { branchId: targetBranchId, platform: { in: ['MERCADO_LIBRE', 'mercadolibre'] } }
+  }) : null;
 
   console.log('[MELI PAGE] Resolved branch:', branch.id, branch.name);
   console.log('[MELI PAGE] Initial integration:', integration ? { id: integration.id, appId: integration.appId } : 'NULL');

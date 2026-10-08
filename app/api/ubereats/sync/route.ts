@@ -14,12 +14,28 @@ import {
 export async function GET(req: Request) {
   try {
     const branch = await getActiveBranch();
+    const user = await getActiveUser();
     if (!branch) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    const isGlobal = !branch || branch.id === 'GLOBAL';
+    let targetBranchId = branch.id;
+
+    if (isGlobal) {
+      const firstInt = await prisma.storeIntegration.findFirst({
+        where: {
+          platform: 'UBER_EATS',
+          ...(user?.tenantId ? { branch: { tenantId: user.tenantId } } : {})
+        }
+      });
+      if (firstInt) {
+        targetBranchId = firstInt.branchId;
+      }
+    }
+
     const integration = await prisma.storeIntegration.findUnique({
-      where: { branchId_platform: { branchId: branch.id, platform: 'UBER_EATS' } }
+      where: { branchId_platform: { branchId: targetBranchId, platform: 'UBER_EATS' } }
     });
 
     if (!integration || !integration.appId || !integration.clientSecret) {
@@ -94,12 +110,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No se encontró ningún usuario configurado.' }, { status: 400 });
     }
 
+    let body = {};
+    try {
+      body = await req.json();
+    } catch (e) {}
+
+    const isGlobal = !branch || branch.id === 'GLOBAL';
+    let targetBranchId = (body as any)?.branchId || (branch.id !== 'GLOBAL' ? branch.id : null);
+
+    if (!targetBranchId) {
+      const firstInt = await prisma.storeIntegration.findFirst({
+        where: {
+          platform: 'UBER_EATS',
+          ...(user?.tenantId ? { branch: { tenantId: user.tenantId } } : {})
+        }
+      });
+      targetBranchId = firstInt?.branchId || branch.id;
+    }
+
     const integration = await prisma.storeIntegration.findUnique({
-      where: { branchId_platform: { branchId: branch.id, platform: 'UBER_EATS' } }
+      where: { branchId_platform: { branchId: targetBranchId, platform: 'UBER_EATS' } },
+      include: { branch: true }
     });
 
     if (!integration || !integration.appId || !integration.clientSecret) {
-      return NextResponse.json({ error: 'Configuración o credenciales de Uber Eats faltantes.' }, { status: 400 });
+      return NextResponse.json({ error: 'Configuración o credenciales de Uber Eats faltantes para la sucursal seleccionada.' }, { status: 400 });
     }
 
     const meta = integration.metadata ? JSON.parse(integration.metadata) : {};
@@ -119,9 +154,8 @@ export async function POST(req: Request) {
 
     // 2. Synchronize stock availability to Uber Eats
     if (token && storeId) {
-      // Find all mapped products for this branch
       const mappedProducts = await prisma.externalProductMap.findMany({
-        where: { platform: 'UBER_EATS', product: { branchId: branch.id } },
+        where: { platform: 'UBER_EATS', product: { branchId: targetBranchId } },
         include: { product: true }
       });
 
@@ -145,46 +179,47 @@ export async function POST(req: Request) {
       }
     }
 
-    // 3. Optional order simulation test if requested in body (useful for verifying POS workflow)
-    let body = {};
-    try {
-      body = await req.json();
-    } catch (e) {}
-
+    // 3. Optional order simulation test if requested in body
     let simulatedSale = null;
     if ((body as any)?.simulateTestOrder) {
+      const branchName = integration.branch?.name || 'Sucursal';
       const simulatedPayload = {
         id: `UB-${Math.floor(Math.random() * 900000) + 100000}`,
         display_id: String(Math.floor(Math.random() * 9000) + 1000),
+        store: {
+          id: storeId,
+          name: `Pizca de Azúcar - ${branchName}`
+        },
         eater: {
           first_name: 'Cliente Prueba',
           last_name: 'Uber Eats',
           phone: '4421234567',
           delivery: {
-            location: { formatted_address: 'Av. Constituyentes 100, Querétaro' }
+            location: { formatted_address: `Entrega en ${branchName}, Querétaro` }
           }
         },
         cart: {
           items: [
             {
               id: 'ITEM-TEST-1',
-              title: 'Pastel / Postre Uber Test',
-              quantity: 1,
-              price: { unit_price: { amount: 15000 } }
+              title: `Rebanada de Pastel Especial (${branchName})`,
+              quantity: 2,
+              price: { unit_price: { amount: 8500 } }
             }
           ]
         },
         payment: {
-          charges: { total: { amount: 15000 } }
+          charges: { total: { amount: 17000 } }
         }
       };
 
-      simulatedSale = await processUberEatsOrder(simulatedPayload, branch.id, user.id);
+      simulatedSale = await processUberEatsOrder(simulatedPayload, targetBranchId, user.id);
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Sincronización con Uber Eats completada con éxito.',
+      message: `Sincronización con Uber Eats completada para la sucursal ${integration.branch?.name || targetBranchId}.`,
+      branchName: integration.branch?.name,
       stockSummary: {
         suspendedOutOfStock: itemsSuspendedCount,
         activeInStock: itemsActiveCount

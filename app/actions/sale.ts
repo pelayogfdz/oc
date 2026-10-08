@@ -33,6 +33,7 @@ export async function createSale(
     productName?: string;
     productSku?: string;
     productBarcode?: string;
+    batchId?: string | null;
   }[], 
   total: number,
   paymentMethod: string = 'CASH',
@@ -271,6 +272,7 @@ export async function createSale(
                 cost: resolvedCost,
                 productId: item.productId,
                 variantId: item.variantId || null,
+                batchId: item.batchId || null,
                 productName: item.productName || prod?.name || 'Producto',
                 productSku: item.productSku || prod?.sku || null,
                 productBarcode: item.productBarcode || prod?.barcode || null
@@ -432,36 +434,69 @@ export async function createSale(
             });
           }
           
-          // FEFO Batch Deduction
+          // Batch Deduction: Specific Batch selected or FEFO fallback
           let remainingToDeduct = item.quantity;
-          const availableBatches = await tx.productBatch.findMany({
-            where: { productId: item.productId, stock: { gt: 0 } },
-            orderBy: { expirationDate: 'asc' } // oldest expires first
-          });
 
-          for (const batch of availableBatches) {
-            if (remainingToDeduct <= 0) break;
-            const deductAmount = Math.min(batch.stock, remainingToDeduct);
-            
-            await tx.productBatch.update({
-              where: { id: batch.id },
-              data: { stock: { decrement: deductAmount } }
+          if (item.batchId) {
+            const specificBatch = await tx.productBatch.findUnique({
+              where: { id: item.batchId }
             });
-            
-            await tx.inventoryMovement.create({
-              data: {
+            if (specificBatch) {
+              const deductAmount = Math.min(specificBatch.stock, remainingToDeduct);
+              await tx.productBatch.update({
+                where: { id: specificBatch.id },
+                data: { stock: { decrement: deductAmount } }
+              });
+              await tx.inventoryMovement.create({
+                data: {
+                  productId: item.productId,
+                  variantId: item.variantId || null,
+                  batchId: specificBatch.id,
+                  type: 'OUT',
+                  quantity: -deductAmount,
+                  cost: specificBatch.cost || productMap.get(item.productId)?.cost || 0,
+                  reason: `Venta #${createdSale.id.slice(0, 8)} (Lote ${specificBatch.batchNumber || specificBatch.id.slice(0, 6)})`,
+                  userId: user.id
+                }
+              });
+              remainingToDeduct -= deductAmount;
+            }
+          }
+
+          if (remainingToDeduct > 0) {
+            const availableBatches = await tx.productBatch.findMany({
+              where: {
                 productId: item.productId,
-                variantId: item.variantId || null,
-                batchId: batch.id,
-                type: 'OUT',
-                quantity: -deductAmount,
-                cost: batch.cost || productMap.get(item.productId)?.cost || 0,
-                reason: `Venta #${createdSale.id.slice(0, 8)} (FEFO Lote)`,
-                userId: user.id
-              }
+                stock: { gt: 0 },
+                ...(item.batchId ? { id: { not: item.batchId } } : {})
+              },
+              orderBy: { expirationDate: 'asc' } // oldest expires first
             });
-            
-            remainingToDeduct -= deductAmount;
+
+            for (const batch of availableBatches) {
+              if (remainingToDeduct <= 0) break;
+              const deductAmount = Math.min(batch.stock, remainingToDeduct);
+              
+              await tx.productBatch.update({
+                where: { id: batch.id },
+                data: { stock: { decrement: deductAmount } }
+              });
+              
+              await tx.inventoryMovement.create({
+                data: {
+                  productId: item.productId,
+                  variantId: item.variantId || null,
+                  batchId: batch.id,
+                  type: 'OUT',
+                  quantity: -deductAmount,
+                  cost: batch.cost || productMap.get(item.productId)?.cost || 0,
+                  reason: `Venta #${createdSale.id.slice(0, 8)} (FEFO Lote)`,
+                  userId: user.id
+                }
+              });
+              
+              remainingToDeduct -= deductAmount;
+            }
           }
 
           // If sold without stock or items not assigned to any batch

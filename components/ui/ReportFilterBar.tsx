@@ -186,20 +186,9 @@ export default function ReportFilterBar({
   };
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexWrap: 'wrap',
-      alignItems: 'center', 
-      gap: '1rem', 
-      backgroundColor: 'white', 
-      padding: '1rem', 
-      borderRadius: '12px', 
-      border: '1px solid var(--caanma-border)',
-      marginBottom: '1.5rem',
-      fontFamily: 'var(--font-geist-sans)'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', marginRight: '0.5rem' }}>
-        <Filter size={18} /> Filtros:
+    <div className="flex flex-wrap items-center gap-3 bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs mb-6">
+      <div className="flex items-center gap-1.5 text-slate-500 font-bold text-xs uppercase tracking-wider mr-1">
+        <Filter size={15} className="text-slate-400" /> Filtros:
       </div>
 
       {showDateRange && (
@@ -207,22 +196,13 @@ export default function ReportFilterBar({
       )}
 
       {showBranch && branches.length > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--caanma-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
-          <Store size={16} color="var(--caanma-text-muted)" style={{ marginLeft: '0.5rem' }} />
+        <div className="flex items-center h-10 px-3 bg-white hover:bg-slate-50/80 border border-slate-200 rounded-xl shadow-2xs transition-all">
+          <Store size={16} className="text-slate-400 mr-2 flex-shrink-0" />
           <select 
             value={branchId}
             onChange={handleBranchChange}
             disabled={disabled || loadingFilters}
-            style={{ 
-              border: 'none', 
-              padding: '0.6rem 0.5rem', 
-              backgroundColor: 'transparent',
-              outline: 'none',
-              fontWeight: '500',
-              color: 'var(--caanma-text)',
-              cursor: 'pointer',
-              minWidth: '150px'
-            }}
+            className="bg-transparent border-none text-xs sm:text-sm font-semibold text-slate-700 outline-none cursor-pointer pr-2 min-w-[140px]"
           >
             <option value="ALL">Todas las Sucursales</option>
             {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -231,22 +211,13 @@ export default function ReportFilterBar({
       )}
 
       {showUser && (
-        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--caanma-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
-          <User size={16} color="var(--caanma-text-muted)" style={{ marginLeft: '0.5rem' }} />
+        <div className="flex items-center h-10 px-3 bg-white hover:bg-slate-50/80 border border-slate-200 rounded-xl shadow-2xs transition-all">
+          <User size={16} className="text-slate-400 mr-2 flex-shrink-0" />
           <select 
             value={userId}
             onChange={handleUserChange}
             disabled={disabled || loadingFilters}
-            style={{ 
-              border: 'none', 
-              padding: '0.6rem 0.5rem', 
-              backgroundColor: 'transparent',
-              outline: 'none',
-              fontWeight: '500',
-              color: 'var(--caanma-text)',
-              cursor: 'pointer',
-              minWidth: '150px'
-            }}
+            className="bg-transparent border-none text-xs sm:text-sm font-semibold text-slate-700 outline-none cursor-pointer pr-2 min-w-[140px]"
           >
             <option value="ALL">Todos los Vendedores</option>
             {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -255,22 +226,13 @@ export default function ReportFilterBar({
       )}
 
       {showBrand && brands.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--caanma-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
-          <Tag size={16} color="var(--caanma-text-muted)" style={{ marginLeft: '0.5rem' }} />
+        <div className="flex items-center h-10 px-3 bg-white hover:bg-slate-50/80 border border-slate-200 rounded-xl shadow-2xs transition-all">
+          <Tag size={16} className="text-slate-400 mr-2 flex-shrink-0" />
           <select 
             value={brandId}
             onChange={handleBrandChange}
             disabled={disabled || loadingFilters}
-            style={{ 
-              border: 'none', 
-              padding: '0.6rem 0.5rem', 
-              backgroundColor: 'transparent',
-              outline: 'none',
-              fontWeight: '500',
-              color: 'var(--caanma-text)',
-              cursor: 'pointer',
-              minWidth: '150px'
-            }}
+            className="bg-transparent border-none text-xs sm:text-sm font-semibold text-slate-700 outline-none cursor-pointer pr-2 min-w-[140px]"
           >
             <option value="ALL">Todas las Marcas</option>
             {brands.map(b => <option key={b} value={b}>{b}</option>)}
@@ -279,22 +241,13 @@ export default function ReportFilterBar({
       )}
 
       {showPaymentMethod && (
-        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--caanma-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
-          <DollarSign size={16} color="var(--caanma-text-muted)" style={{ marginLeft: '0.5rem' }} />
+        <div className="flex items-center h-10 px-3 bg-white hover:bg-slate-50/80 border border-slate-200 rounded-xl shadow-2xs transition-all">
+          <DollarSign size={16} className="text-slate-400 mr-2 flex-shrink-0" />
           <select 
             value={paymentMethod}
             onChange={handlePaymentMethodChange}
             disabled={disabled || loadingFilters}
-            style={{ 
-              border: 'none', 
-              padding: '0.6rem 0.5rem', 
-              backgroundColor: 'transparent',
-              outline: 'none',
-              fontWeight: '500',
-              color: 'var(--caanma-text)',
-              cursor: 'pointer',
-              minWidth: '150px'
-            }}
+            className="bg-transparent border-none text-xs sm:text-sm font-semibold text-slate-700 outline-none cursor-pointer pr-2 min-w-[140px]"
           >
             <option value="ALL">Todos los Métodos</option>
             <option value="CASH">Efectivo</option>
@@ -314,22 +267,13 @@ export default function ReportFilterBar({
 
 
       {showRestockable && (
-        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--caanma-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
-          <Package size={16} color="var(--caanma-text-muted)" style={{ marginLeft: '0.5rem' }} />
+        <div className="flex items-center h-10 px-3 bg-white hover:bg-slate-50/80 border border-slate-200 rounded-xl shadow-2xs transition-all">
+          <Package size={16} className="text-slate-400 mr-2 flex-shrink-0" />
           <select 
             value={restockable}
             onChange={handleRestockableChange}
             disabled={disabled || loadingFilters}
-            style={{ 
-              border: 'none', 
-              padding: '0.6rem 0.5rem', 
-              backgroundColor: 'transparent',
-              outline: 'none',
-              fontWeight: '500',
-              color: 'var(--caanma-text)',
-              cursor: 'pointer',
-              minWidth: '150px'
-            }}
+            className="bg-transparent border-none text-xs sm:text-sm font-semibold text-slate-700 outline-none cursor-pointer pr-2 min-w-[140px]"
           >
             <option value="ALL">Resurtido: Todos</option>
             <option value="RESTOCKABLE">✅ Resurtibles</option>
@@ -339,22 +283,13 @@ export default function ReportFilterBar({
       )}
 
       {showInvoiced && (
-        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--caanma-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
-          <FileText size={16} color="var(--caanma-text-muted)" style={{ marginLeft: '0.5rem' }} />
+        <div className="flex items-center h-10 px-3 bg-white hover:bg-slate-50/80 border border-slate-200 rounded-xl shadow-2xs transition-all">
+          <FileText size={16} className="text-slate-400 mr-2 flex-shrink-0" />
           <select 
             value={invoiced}
             onChange={handleInvoicedChange}
             disabled={disabled || loadingFilters}
-            style={{ 
-              border: 'none', 
-              padding: '0.6rem 0.5rem', 
-              backgroundColor: 'transparent',
-              outline: 'none',
-              fontWeight: '500',
-              color: 'var(--caanma-text)',
-              cursor: 'pointer',
-              minWidth: '150px'
-            }}
+            className="bg-transparent border-none text-xs sm:text-sm font-semibold text-slate-700 outline-none cursor-pointer pr-2 min-w-[140px]"
           >
             <option value="ALL">Facturación: Todos</option>
             <option value="INVOICED">Facturado</option>

@@ -6,12 +6,14 @@ import Link from 'next/link';
 import WalmartCalculator from './Calculator';
 import BackButton from '@/app/components/ui/BackButton';
 
-export default async function WalmartConfigPage() {
+export default async function WalmartConfigPage({ searchParams }: { searchParams?: Promise<{ branchId?: string }> }) {
   const branch = await getActiveBranch();
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const targetBranchId = resolvedSearchParams.branchId || branch?.id || '';
   
-  const integration: any = await prisma.storeIntegration.findUnique({
-    where: { branchId_platform: { branchId: branch.id, platform: 'WALMART' } }
-  });
+  const integration: any = targetBranchId ? await prisma.storeIntegration.findFirst({
+    where: { branchId: targetBranchId, platform: { in: ['WALMART', 'walmart'] } }
+  }) : null;
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>

@@ -15,13 +15,16 @@ export async function GET(req: Request) {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    // Obtener ventas online registradas hoy en esta sucursal (Mercado Libre, B2C Web, Google Pay, etc.)
+    // Obtener ventas online registradas hoy en esta sucursal (Mercado Libre, B2C Web, Google Pay, Uber Eats, etc.)
     const sales = await prisma.sale.findMany({
       where: {
-        branchId: branch.id,
+        ...(branch.id === 'GLOBAL' ? { branch: { tenantId: branch.tenantId } } : { branchId: branch.id }),
         createdAt: { gte: todayStart },
         OR: [
           { notes: { contains: 'Mercado Libre' } },
+          { notes: { contains: 'Uber' } },
+          { paymentMethod: 'UBER_EATS' },
+          { folio: { startsWith: 'UB-' } },
           { notes: { contains: 'Venta importada automáticamente vía API externa' } },
           { notes: { contains: 'Pago aprobado con Google Pay' } },
           { notes: { contains: 'Venta Online API' } },
@@ -111,7 +114,7 @@ export async function GET(req: Request) {
       }
 
       // Extracción de datos específicos
-      const orderMatch = notes.match(/Mercado Libre Orden\s*(\d+)/i) || notes.match(/Orden #?([A-Za-z0-9-]+)/i);
+      const orderMatch = notes.match(/Mercado Libre Orden\s*(\d+)/i) || notes.match(/ID:\s*([A-Za-z0-9_-]+)/i) || notes.match(/Orden #?([A-Za-z0-9-]+)/i);
       const orderId = orderMatch ? orderMatch[1] : null;
 
       const pickupMatch = notes.match(/Código de Recolección(?: en Tienda)?:\s*([A-Za-z0-9-]+)/i);
@@ -159,8 +162,12 @@ export async function GET(req: Request) {
         deliveryAddress = parts.join(', ');
       } else if (pickupCode || notes.toLowerCase().includes('recoger') || notes.toLowerCase().includes('recolección')) {
         deliveryMode = 'pickup';
-      } else if (notes.toLowerCase().includes('domicilio') || notes.toLowerCase().includes('envío')) {
+      } else if (notes.toLowerCase().includes('domicilio') || notes.toLowerCase().includes('envío') || notes.toLowerCase().includes('entrega:') || channel === 'UBER_EATS') {
         deliveryMode = 'delivery';
+        const entregaMatch = notes.match(/Entrega:\s*([^|\r\n]+)/i);
+        if (entregaMatch) {
+          deliveryAddress = entregaMatch[1].trim();
+        }
       }
 
       return {
