@@ -37,23 +37,34 @@ interface OnlineSale {
   items: OnlineSaleItem[];
 }
 
-export default function MeliSalesAlertPopup() {
+interface MeliSalesAlertPopupProps {
+  tenantId?: string | null;
+}
+
+export default function MeliSalesAlertPopup({ tenantId }: MeliSalesAlertPopupProps = {}) {
   const [activeSale, setActiveSale] = useState<OnlineSale | null>(null);
   const [pendingSales, setPendingSales] = useState<OnlineSale[]>([]);
+
+  const isPizca = tenantId === '0d246cea-0220-4328-92b0-8a1387ce6a6d';
+  const storageKey = tenantId ? `seenOnlineSales_${tenantId}` : 'seenOnlineSales';
 
   const checkNewSales = async () => {
     try {
       const res = await fetch('/api/mercadolibre/notifications', { cache: 'no-store' });
       if (!res.ok) return;
       const data = await res.json();
-      const sales: OnlineSale[] = data.sales || [];
+      const rawSales: OnlineSale[] = data.sales || [];
 
+      if (rawSales.length === 0) return;
+
+      // Filtrar ventas de Uber Eats si este cliente NO es Pizca de Azúcar
+      const sales = isPizca ? rawSales : rawSales.filter(s => s.channel !== 'UBER_EATS');
       if (sales.length === 0) return;
 
-      // Obtener ventas ya vistas desde localStorage
+      // Obtener ventas ya vistas desde localStorage (scoped por tenantId)
       let seenSales: string[] = [];
       try {
-        const stored = localStorage.getItem('seenOnlineSales') || localStorage.getItem('seenMeliSales');
+        const stored = localStorage.getItem(storageKey) || localStorage.getItem('seenOnlineSales') || localStorage.getItem('seenMeliSales');
         if (stored) {
           seenSales = JSON.parse(stored);
         }
@@ -93,7 +104,7 @@ export default function MeliSalesAlertPopup() {
       clearTimeout(initialTimer);
       clearInterval(interval);
     };
-  }, []);
+  }, [tenantId]);
 
   const handleDismiss = (saleId?: string) => {
     const idToDismiss = saleId || activeSale?.id;
@@ -102,14 +113,14 @@ export default function MeliSalesAlertPopup() {
     // Guardar en localStorage como vista
     try {
       let seenSales: string[] = [];
-      const stored = localStorage.getItem('seenOnlineSales') || localStorage.getItem('seenMeliSales');
+      const stored = localStorage.getItem(storageKey);
       if (stored) {
         seenSales = JSON.parse(stored);
       }
       if (!seenSales.includes(idToDismiss)) {
         seenSales.push(idToDismiss);
+        localStorage.setItem(storageKey, JSON.stringify(seenSales));
         localStorage.setItem('seenOnlineSales', JSON.stringify(seenSales));
-        localStorage.setItem('seenMeliSales', JSON.stringify(seenSales));
       }
     } catch (e) {}
 

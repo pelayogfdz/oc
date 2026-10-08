@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Search, FileText } from 'lucide-react';
 import QuoteActions from './QuoteActions';
 import { formatCurrency } from '@/lib/utils';
+import { calculateQuoteInstitutionalBreakdown } from '@/lib/financialCalculations';
 
 interface CotizacionesTableProps {
   initialQuotes: any[];
@@ -288,12 +289,14 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                       {(() => {
                         const totalPurchaseCost = quote.items.reduce((sum: number, i: any) => sum + ((i.cost || i.product?.averageCost || i.product?.cost || 0) * i.quantity), 0);
                         const totalMarginPercent = quote.total > 0 ? ((quote.total - totalPurchaseCost) / quote.total) * 100 : 0;
-                        const subtotalSinIva = quote.items.reduce((sum: number, i: any) => {
-                          const rate = (i.product?.taxType === 'IVA' || i.product?.taxType === 'IVA_IEPS') ? (i.product?.taxRate ?? 16.0) : 16.0;
-                          const unitSinIva = Math.round((i.price / (1 + rate / 100)) * 100) / 100;
-                          return sum + Math.round((unitSinIva * i.quantity) * 100) / 100;
-                        }, 0);
-                        const ivaTotal = Math.round((subtotalSinIva * 0.16) * 100) / 100;
+                        const breakdown = calculateQuoteInstitutionalBreakdown(quote.items.map((i: any) => ({
+                          price: i.price,
+                          quantity: i.quantity,
+                          taxRate: i.product?.taxRate,
+                          taxType: i.product?.taxType
+                        })));
+                        const subtotalSinIva = breakdown.subtotal;
+                        const ivaTotal = breakdown.iva;
 
                         return (
                           <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem' }}>

@@ -11,31 +11,42 @@ export async function GET(req: Request) {
       return NextResponse.json({ sales: [] });
     }
 
+    const tenantId = branch.tenantId;
+    const isPizca = tenantId === '0d246cea-0220-4328-92b0-8a1387ce6a6d';
+
     // Obtener fecha del inicio del día de hoy
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
+
+    const orConditions: any[] = [
+      { notes: { contains: 'Mercado Libre' } },
+      { notes: { contains: 'Venta importada automáticamente vía API externa' } },
+      { notes: { contains: 'Pago aprobado con Google Pay' } },
+      { notes: { contains: 'Venta Online API' } },
+      { notes: { contains: 'Código de Recolección' } },
+      { notes: { contains: 'Catálogo B2C' } },
+      { notes: { contains: 'Tienda Online' } },
+      { notes: { contains: 'Pedido Web' } },
+      { notes: { contains: 'B2C' } },
+      { user: { name: { in: ['VENTAS ONLINE PAGINA', 'VENTAS ONLINE'] } } },
+      { deliveryOrder: { isNot: null } }
+    ];
+
+    // Incluir filtros de Uber Eats ÚNICAMENTE si el tenant es Pizca de Azúcar
+    if (isPizca) {
+      orConditions.push(
+        { notes: { contains: 'Uber' } },
+        { paymentMethod: 'UBER_EATS' },
+        { folio: { startsWith: 'UB-' } }
+      );
+    }
 
     // Obtener ventas online registradas hoy en esta sucursal (Mercado Libre, B2C Web, Google Pay, Uber Eats, etc.)
     const sales = await prisma.sale.findMany({
       where: {
         ...(branch.id === 'GLOBAL' ? { branch: { tenantId: branch.tenantId } } : { branchId: branch.id }),
         createdAt: { gte: todayStart },
-        OR: [
-          { notes: { contains: 'Mercado Libre' } },
-          { notes: { contains: 'Uber' } },
-          { paymentMethod: 'UBER_EATS' },
-          { folio: { startsWith: 'UB-' } },
-          { notes: { contains: 'Venta importada automáticamente vía API externa' } },
-          { notes: { contains: 'Pago aprobado con Google Pay' } },
-          { notes: { contains: 'Venta Online API' } },
-          { notes: { contains: 'Código de Recolección' } },
-          { notes: { contains: 'Catálogo B2C' } },
-          { notes: { contains: 'Tienda Online' } },
-          { notes: { contains: 'Pedido Web' } },
-          { notes: { contains: 'B2C' } },
-          { user: { name: { in: ['VENTAS ONLINE PAGINA', 'VENTAS ONLINE'] } } },
-          { deliveryOrder: { isNot: null } }
-        ]
+        OR: orConditions
       },
       include: {
         customer: {
@@ -91,7 +102,7 @@ export async function GET(req: Request) {
       } else if (notes.includes('Rappi')) {
         channel = 'RAPPI';
         channelLabel = 'Rappi';
-      } else if (notes.includes('Uber')) {
+      } else if (isPizca && (notes.includes('Uber') || sale.paymentMethod === 'UBER_EATS' || sale.folio?.startsWith('UB-'))) {
         channel = 'UBER_EATS';
         channelLabel = 'Uber Eats';
       } else if (
@@ -199,7 +210,9 @@ export async function GET(req: Request) {
       };
     });
 
-    return NextResponse.json({ sales: formattedSales });
+    const finalSales = isPizca ? formattedSales : formattedSales.filter(s => s.channel !== 'UBER_EATS');
+
+    return NextResponse.json({ sales: finalSales });
 
   } catch (error: any) {
     if (error?.message === 'Unauthorized') {

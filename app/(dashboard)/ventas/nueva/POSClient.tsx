@@ -17,6 +17,7 @@ import ProductTableUI from '@/app/components/ProductTableUI';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 import QuoteAIAssistantModal from '@/app/components/pos/QuoteAIAssistantModal';
 import { formatCurrency } from '@/lib/utils';
+import { calculateQuoteInstitutionalBreakdown } from '@/lib/financialCalculations';
 import { isGenericCustomerName } from '@/lib/genericCustomer';
 import { searchOfflineProducts } from '@/lib/offlineSearch';
 import { db } from '@/lib/offlineDB';
@@ -1542,22 +1543,7 @@ export default function POSClient({
           attribute: variant ? variant.attribute : null
         };
       });
-      // Recalculate subtotal of loaded items and distribute small rounding differences
-      const subTotalOfLoadedItems = newCart.reduce((sum: number, item: any) => sum + (item.customPrice * item.quantity), 0);
-      const discountDiff = subTotalOfLoadedItems - quote.total;
-
-      if (Math.abs(discountDiff) > 0.001 && Math.abs(discountDiff) <= 5.0) {
-        const totalQty = newCart.reduce((sum: number, item: any) => sum + item.quantity, 0);
-        if (totalQty > 0) {
-          const adjPerUnit = -discountDiff / totalQty;
-          newCart.forEach((item: any) => {
-            const adjustedPrice = Number((item.customPrice + adjPerUnit).toFixed(6));
-            item.customPrice = adjustedPrice;
-            item.cartPrice = adjustedPrice;
-          });
-        }
-      }
-
+      // Respetar los precios unitarios limpios sin alterar customPrice por centavos
       setCart(newCart);
       
       // Load Customer
@@ -1567,12 +1553,17 @@ export default function POSClient({
         await handleCustomerChange('', true);
       }
 
-      // Re-calculate and set manual discount if there was a difference between subtotal of items and quote total
-      const updatedSubTotal = newCart.reduce((sum: number, item: any) => sum + (item.customPrice * item.quantity), 0);
-      const finalDiscountDiff = updatedSubTotal - quote.total;
-      if (finalDiscountDiff > 0.01) {
-        setManualDiscountType('$');
-        setManualDiscountValue(Number(finalDiscountDiff.toFixed(2)));
+      // Si la cotización tenía un descuento manual explícito mayor a $5.00, restaurarlo
+      if (mode !== 'QUOTE') {
+        const updatedSubTotal = newCart.reduce((sum: number, item: any) => sum + (item.customPrice * item.quantity), 0);
+        const finalDiscountDiff = updatedSubTotal - quote.total;
+        if (finalDiscountDiff > 5.0) {
+          setManualDiscountType('$');
+          setManualDiscountValue(Number(finalDiscountDiff.toFixed(2)));
+        } else {
+          setManualDiscountType('$');
+          setManualDiscountValue('');
+        }
       } else {
         setManualDiscountType('$');
         setManualDiscountValue('');
@@ -2444,29 +2435,28 @@ export default function POSClient({
     return d > subTotal ? subTotal : d;
   }, [subTotal, itemDiscounts, manualDiscountValue, manualDiscountType]);
 
+  const quoteInstitutionalBreakdown = useMemo(() => {
+    if (mode !== 'QUOTE') return null;
+    return calculateQuoteInstitutionalBreakdown(
+      cart.map(item => {
+        const itemPrice = getProductPrice(item);
+        const pVal = item.customPrice !== undefined ? item.customPrice : itemPrice;
+        const pNum = pVal !== '' && pVal !== null ? parseFloat(pVal as any) : 0;
+        return {
+          price: isNaN(pNum) ? 0 : pNum,
+          quantity: item.quantity,
+          taxRate: item.taxRate,
+          taxType: item.taxType
+        };
+      })
+    );
+  }, [mode, cart, getProductPrice]);
+
   let total = subTotal - discount;
-  if (mode === 'QUOTE') {
-    let quoteSubtotal = 0;
-    cart.forEach(item => {
-      const itemPrice = getProductPrice(item);
-      const taxRate = item.taxRate ?? 16.0;
-      const taxFactor = 1 + (taxRate / 100);
-      const unitSinIva = Math.round((itemPrice / taxFactor) * 100) / 100;
-      quoteSubtotal += Math.round((unitSinIva * item.quantity) * 100) / 100;
-    });
-    quoteSubtotal = Math.round(quoteSubtotal * 100) / 100;
-    const allUniform16 = cart.length > 0 && cart.every(it => (it.taxRate ?? 16.0) === 16.0);
-    const quoteIva = allUniform16 
-      ? Math.round((quoteSubtotal * 0.16) * 100) / 100
-      : Math.round(cart.reduce((sum, item) => {
-          const itemPrice = getProductPrice(item);
-          const taxRate = item.taxRate ?? 16.0;
-          const taxFactor = 1 + (taxRate / 100);
-          const unitSinIva = Math.round((itemPrice / taxFactor) * 100) / 100;
-          const rowSubtotal = Math.round((unitSinIva * item.quantity) * 100) / 100;
-          return sum + Math.round((rowSubtotal * (taxRate / 100)) * 100) / 100;
-        }, 0) * 100) / 100;
-    total = Math.round((quoteSubtotal + quoteIva - discount) * 100) / 100;
+  if (mode === 'QUOTE' && quoteInstitutionalBreakdown) {
+    total = Math.max(0, Math.round((quoteInstitutionalBreakdown.total - discount) * 100) / 100);
+  } else if (loadedQuoteId && loadedQuoteTotal && Math.abs(loadedQuoteTotal - total) <= 5.0 && discount === 0) {
+    total = loadedQuoteTotal;
   } else {
     if (ventasConfig.redondeo === 'redondeo_50') total = Math.round(total * 2) / 2;
     if (ventasConfig.redondeo === 'redondeo_100') total = Math.round(total);
@@ -2484,27 +2474,21 @@ export default function POSClient({
   const change = (typeof amountReceived === 'number' ? amountReceived : 0) - finalTotalWithTip;
 
   const scaledTaxBreakdown = useMemo(() => {
-    if (mode === 'QUOTE') {
-      let quoteSubtotal = 0;
-      let quoteIva = 0;
-      cart.forEach(item => {
-        const itemPrice = getProductPrice(item);
-        const taxRate = item.taxRate ?? 16.0;
-        const taxFactor = 1 + (taxRate / 100);
-        const unitSinIva = Math.round((itemPrice / taxFactor) * 100) / 100;
-        const rowSubtotal = Math.round((unitSinIva * item.quantity) * 100) / 100;
-        const rowIva = Math.round((rowSubtotal * (taxRate / 100)) * 100) / 100;
-        quoteSubtotal += rowSubtotal;
-        quoteIva += rowIva;
-      });
-      quoteSubtotal = Math.round(quoteSubtotal * 100) / 100;
-      const allUniform16 = cart.length > 0 && cart.every(it => (it.taxRate ?? 16.0) === 16.0);
-      const finalIva = allUniform16 ? Math.round((quoteSubtotal * 0.16) * 100) / 100 : Math.round(quoteIva * 100) / 100;
+    if (mode === 'QUOTE' && quoteInstitutionalBreakdown) {
+      if (discount > 0 && quoteInstitutionalBreakdown.total > 0) {
+        const factor = Math.max(0, (quoteInstitutionalBreakdown.total - discount) / quoteInstitutionalBreakdown.total);
+        return {
+          iva: Math.round(quoteInstitutionalBreakdown.iva * factor * 100) / 100,
+          ieps: 0,
+          exento: 0,
+          subtotal: Math.round(quoteInstitutionalBreakdown.subtotal * factor * 100) / 100
+        };
+      }
       return {
-        iva: finalIva,
+        iva: quoteInstitutionalBreakdown.iva,
         ieps: 0,
         exento: 0,
-        subtotal: quoteSubtotal
+        subtotal: quoteInstitutionalBreakdown.subtotal
       };
     }
 
@@ -3059,8 +3043,17 @@ export default function POSClient({
 
       const items = finalCart.map(item => {
         const basePrice = getProductPrice(item);
-        // Always save the prorated discounted price in the database so item pricing is accurate
-        const savedPrice = (subTotal > 0 ? (basePrice * (total / subTotal)) : 0);
+        // En cotizaciones, conservar el precio unitario exacto sin distorsión por redondeo institucional de centavos
+        let savedPrice = basePrice;
+        if (mode === 'QUOTE') {
+          if (discount > 0 && subTotal > 0) {
+            savedPrice = basePrice * (1 - (discount / subTotal));
+          } else {
+            savedPrice = basePrice;
+          }
+        } else {
+          savedPrice = (subTotal > 0 ? (basePrice * (total / subTotal)) : 0);
+        }
         return { 
           productId: item.id, 
           variantId: item.variantId || null,

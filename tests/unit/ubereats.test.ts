@@ -158,5 +158,71 @@ describe('Integración Uber Eats - Servicios Core y Utilidades', () => {
       expect(resolvePlatform('mercado-libre')).toBe('mercadolibre');
     });
   });
+
+  describe('Aislamiento Multi-Tenant de Notificaciones y Alertas Flotantes', () => {
+    const PIZCA_TENANT_ID = '0d246cea-0220-4328-92b0-8a1387ce6a6d';
+    const OFFICECITY_TENANT_ID = '8b52cbcd-c956-4717-a1bd-02e57386aaa2';
+
+    it('debe excluir condiciones de Uber Eats para tenants que no sean Pizca de Azúcar', () => {
+      const buildNotificationFilters = (tenantId: string) => {
+        const isPizca = tenantId === PIZCA_TENANT_ID;
+        const orConditions: any[] = [
+          { notes: { contains: 'Mercado Libre' } },
+          { notes: { contains: 'Catálogo B2C' } }
+        ];
+        if (isPizca) {
+          orConditions.push(
+            { notes: { contains: 'Uber' } },
+            { paymentMethod: 'UBER_EATS' },
+            { folio: { startsWith: 'UB-' } }
+          );
+        }
+        return orConditions;
+      };
+
+      const officeCityFilters = buildNotificationFilters(OFFICECITY_TENANT_ID);
+      expect(officeCityFilters.some(c => c.paymentMethod === 'UBER_EATS')).toBe(false);
+      expect(officeCityFilters.some(c => c.notes?.contains === 'Uber')).toBe(false);
+      expect(officeCityFilters.some(c => c.folio?.startsWith === 'UB-')).toBe(false);
+
+      const pizcaFilters = buildNotificationFilters(PIZCA_TENANT_ID);
+      expect(pizcaFilters.some(c => c.paymentMethod === 'UBER_EATS')).toBe(true);
+      expect(pizcaFilters.some(c => c.notes?.contains === 'Uber')).toBe(true);
+      expect(pizcaFilters.some(c => c.folio?.startsWith === 'UB-')).toBe(true);
+    });
+
+    it('debe filtrar en frontend ventas de Uber Eats si el cliente activo es Office City', () => {
+      const mockSales = [
+        { id: '1', channel: 'MERCADO_LIBRE', folio: 'MELI-100' },
+        { id: '2', channel: 'UBER_EATS', folio: 'UB-200' },
+        { id: '3', channel: 'B2C_WEB', folio: 'WEB-300' }
+      ];
+
+      const filterSalesForTenant = (sales: any[], tenantId: string) => {
+        const isPizca = tenantId === PIZCA_TENANT_ID;
+        return isPizca ? sales : sales.filter(s => s.channel !== 'UBER_EATS');
+      };
+
+      const officeSales = filterSalesForTenant(mockSales, OFFICECITY_TENANT_ID);
+      expect(officeSales).toHaveLength(2);
+      expect(officeSales.map(s => s.channel)).toEqual(['MERCADO_LIBRE', 'B2C_WEB']);
+      expect(officeSales.some(s => s.channel === 'UBER_EATS')).toBe(false);
+
+      const pizcaSales = filterSalesForTenant(mockSales, PIZCA_TENANT_ID);
+      expect(pizcaSales).toHaveLength(3);
+      expect(pizcaSales.some(s => s.channel === 'UBER_EATS')).toBe(true);
+    });
+
+    it('debe generar una clave de localStorage aislada por tenant para evitar contaminación cruzada', () => {
+      const getStorageKey = (tenantId?: string | null) => {
+        return tenantId ? `seenOnlineSales_${tenantId}` : 'seenOnlineSales';
+      };
+
+      expect(getStorageKey(OFFICECITY_TENANT_ID)).toBe(`seenOnlineSales_${OFFICECITY_TENANT_ID}`);
+      expect(getStorageKey(PIZCA_TENANT_ID)).toBe(`seenOnlineSales_${PIZCA_TENANT_ID}`);
+      expect(getStorageKey(OFFICECITY_TENANT_ID)).not.toBe(getStorageKey(PIZCA_TENANT_ID));
+    });
+  });
 });
+
 

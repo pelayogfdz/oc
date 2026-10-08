@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Plus, Sparkles } from "lucide-react";
 import CotizacionesTable from "./CotizacionesTable";
+import { calculateQuoteInstitutionalBreakdown } from "@/lib/financialCalculations";
 
 export default async function CotizacionesPage() {
   const branch = await getActiveBranch();
@@ -46,7 +47,9 @@ export default async function CotizacionesPage() {
               id: true,
               name: true,
               cost: true,
-              averageCost: true
+              averageCost: true,
+              taxRate: true,
+              taxType: true
             }
           }
         }
@@ -57,27 +60,23 @@ export default async function CotizacionesPage() {
   // Sanitizar y asegurar cuadratura matemática institucional para todas las cotizaciones
   const sanitizedQuotes = quotes.map(quote => {
     if (quote.items && quote.items.length > 0) {
-      let subtotalSinIva = 0;
-      quote.items.forEach((it: any) => {
-        const rate = (it.product?.taxType === 'IVA' || it.product?.taxType === 'IVA_IEPS') ? (it.product?.taxRate ?? 16.0) : 16.0;
-        const unitSinIva = Math.round((it.price / (1 + rate / 100)) * 100) / 100;
-        const rowSubtotal = Math.round((unitSinIva * it.quantity) * 100) / 100;
-        subtotalSinIva += rowSubtotal;
-      });
-      subtotalSinIva = Math.round(subtotalSinIva * 100) / 100;
-      const computedIva = Math.round((subtotalSinIva * 0.16) * 100) / 100;
-      const computedTotal = Math.round((subtotalSinIva + computedIva) * 100) / 100;
+      const breakdown = calculateQuoteInstitutionalBreakdown(quote.items.map((it: any) => ({
+        price: it.price,
+        quantity: it.quantity,
+        taxRate: it.product?.taxRate,
+        taxType: it.product?.taxType
+      })));
 
       // Si la diferencia histórica es por centavos (menor a $10 pesos), usar y sincronizar el total exacto institucional
-      if (Math.abs(quote.total - computedTotal) > 0.009 && Math.abs(quote.total - computedTotal) < 10) {
+      if (Math.abs(quote.total - breakdown.total) > 0.009 && Math.abs(quote.total - breakdown.total) < 10) {
         prisma.quote.update({
           where: { id: quote.id },
-          data: { total: computedTotal }
+          data: { total: breakdown.total }
         }).catch(() => {});
 
         return {
           ...quote,
-          total: computedTotal
+          total: breakdown.total
         };
       }
     }

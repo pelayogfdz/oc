@@ -48,28 +48,46 @@ export async function POST(req: Request) {
         return NextResponse.json({ status: 'ignored_no_order_id' }, { status: 200 });
       }
 
-      // Lookup matching StoreIntegration
-      let integration = null;
-      if (incomingStoreId) {
-        const allIntegrations = await prisma.storeIntegration.findMany({
-          where: { platform: 'UBER_EATS', isActive: true }
-        });
-        integration = allIntegrations.find(it => {
-          if (!it.metadata) return false;
-          try {
-            const meta = JSON.parse(it.metadata);
-            return meta.storeId === incomingStoreId;
-          } catch (e) {
-            return false;
-          }
-        });
-      }
+      // Lookup matching StoreIntegration exclusively in Pizca de Azúcar database
+      let integration: any = null;
+      let targetTenantId: string = '0d246cea-0220-4328-92b0-8a1387ce6a6d';
+      const { getClientForTenant } = await import('@/lib/prisma');
 
-      // Fallback: use first active UBER_EATS integration
-      if (!integration) {
-        integration = await prisma.storeIntegration.findFirst({
-          where: { platform: 'UBER_EATS', isActive: true }
-        });
+      const tenantIdsToSearch = [
+        '0d246cea-0220-4328-92b0-8a1387ce6a6d' // Pizca de Azúcar (Exclusivo)
+      ];
+
+      for (const tid of tenantIdsToSearch) {
+        try {
+          const tClient = getClientForTenant(tid);
+          const candidateIntegrations = await tClient.storeIntegration.findMany({
+            where: { platform: 'UBER_EATS', isActive: true },
+            include: { branch: true }
+          });
+
+          if (incomingStoreId) {
+            const match = candidateIntegrations.find(it => {
+              if (!it.metadata) return false;
+              try {
+                const meta = JSON.parse(it.metadata);
+                return meta.storeId === incomingStoreId || it.accessToken === incomingStoreId;
+              } catch (e) {
+                return false;
+              }
+            });
+            if (match) {
+              integration = match;
+              targetTenantId = tid;
+              break;
+            }
+          } else if (candidateIntegrations.length > 0 && !integration) {
+            integration = candidateIntegrations[0];
+            targetTenantId = tid;
+            break;
+          }
+        } catch (dbErr) {
+          console.warn(`[Uber Eats Webhook] Error checking tenant ${tid}:`, dbErr);
+        }
       }
 
       if (!integration || !integration.appId || !integration.clientSecret) {
@@ -93,7 +111,7 @@ export async function POST(req: Request) {
       // Execute order retrieval and acceptance in background
       (async () => {
         try {
-          console.log(`[Uber Eats Webhook] Processing order ${orderId} for branch ${integration.branchId}...`);
+          console.log(`[Uber Eats Webhook] Processing order ${orderId} for branch ${integration.branchId} (Tenant: ${targetTenantId})...`);
           const token = await getUberEatsAccessToken(integration.appId!, integration.clientSecret!, isSandbox);
 
           // 1. Fetch detailed order contents
@@ -105,8 +123,8 @@ export async function POST(req: Request) {
             externalReferenceId: orderId
           }, isSandbox);
 
-          // 3. Process the order: decrement stock, record inventory movement, create Sale
-          await processUberEatsOrder(orderDetails, integration.branchId);
+          // 3. Process the order: decrement stock, record inventory movement, create Sale in tenant database
+          await processUberEatsOrder(orderDetails, integration.branchId, undefined, targetTenantId);
 
         } catch (err: any) {
           console.error(`[Uber Eats Webhook] Error asynchronously processing order ${orderId}:`, err.message || err);

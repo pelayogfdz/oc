@@ -1587,6 +1587,9 @@ export async function syncMeliPriceToPriceList(
 
 export async function saveUberEatsConfig(formData: FormData) {
   const branch = await getActiveBranch();
+  if (branch?.tenantId && branch.tenantId !== '0d246cea-0220-4328-92b0-8a1387ce6a6d') {
+    throw new Error('La configuración de Uber Eats es exclusiva para el cliente Pizca de Azúcar.');
+  }
   const appId = (formData.get('appId') as string || '').trim();
   const clientSecret = (formData.get('clientSecret') as string || '').trim();
   const storeId = (formData.get('storeId') as string || '').trim();
@@ -1653,7 +1656,15 @@ export async function mapProductToUberEats(productId: string, externalId: string
     throw new Error('Producto e ID externo requeridos');
   }
 
-  await prisma.externalProductMap.upsert({
+  const user = await getActiveUser().catch(() => null);
+  if (user?.tenantId && user.tenantId !== '0d246cea-0220-4328-92b0-8a1387ce6a6d') {
+    throw new Error('El mapeo de productos de Uber Eats es exclusivo para el cliente Pizca de Azúcar.');
+  }
+  const tenantId = '0d246cea-0220-4328-92b0-8a1387ce6a6d';
+  const { getClientForTenant } = await import('@/lib/prisma');
+  const db = getClientForTenant(tenantId);
+
+  await db.externalProductMap.upsert({
     where: {
       platform_externalId: {
         platform: 'UBER_EATS',
@@ -1678,7 +1689,15 @@ export async function mapProductToUberEats(productId: string, externalId: string
 }
 
 export async function unmapProductFromUberEats(mapId: string) {
-  await prisma.externalProductMap.delete({
+  const user = await getActiveUser().catch(() => null);
+  if (user?.tenantId && user.tenantId !== '0d246cea-0220-4328-92b0-8a1387ce6a6d') {
+    throw new Error('La desvinculación de productos de Uber Eats es exclusiva para el cliente Pizca de Azúcar.');
+  }
+  const tenantId = '0d246cea-0220-4328-92b0-8a1387ce6a6d';
+  const { getClientForTenant } = await import('@/lib/prisma');
+  const db = getClientForTenant(tenantId);
+
+  await db.externalProductMap.delete({
     where: { id: mapId }
   });
 
@@ -1694,7 +1713,14 @@ export async function syncUberEatsInventoryAction(productId: string, tenantId: s
   if (!productId) return { success: false, reason: 'No productId provided' };
 
   try {
-    const product = await prisma.product.findUnique({
+    const { getClientForTenant } = await import('@/lib/prisma');
+    if (tenantId && tenantId !== '0d246cea-0220-4328-92b0-8a1387ce6a6d') {
+      return { success: false, reason: 'Uber Eats solo está configurado para Pizca de Azúcar' };
+    }
+    const resolvedTenantId = '0d246cea-0220-4328-92b0-8a1387ce6a6d';
+    const db = getClientForTenant(resolvedTenantId);
+
+    const product = await db.product.findUnique({
       where: { id: productId },
       include: {
         externalMaps: {
@@ -1711,7 +1737,7 @@ export async function syncUberEatsInventoryAction(productId: string, tenantId: s
     const branchId = product.branchId;
     if (!branchId) return { success: false, reason: 'Producto sin sucursal asignada' };
 
-    const integration = await prisma.storeIntegration.findUnique({
+    const integration = await db.storeIntegration.findUnique({
       where: { branchId_platform: { branchId, platform: 'UBER_EATS' } }
     });
 
@@ -1735,7 +1761,7 @@ export async function syncUberEatsInventoryAction(productId: string, tenantId: s
       if (!syncInventoryEnabled) {
         // MODO SIMULADO / AUDITORÍA: Refleja el estado como espejo de CAANMA de forma segura
         const newSyncStatus = isOutOfStock ? 'SIMULATED_SUSPENDED' : 'SIMULATED_SYNCED';
-        await prisma.externalProductMap.update({
+        await db.externalProductMap.update({
           where: { id: map.id },
           data: {
             syncStatus: newSyncStatus,
@@ -1762,7 +1788,7 @@ export async function syncUberEatsInventoryAction(productId: string, tenantId: s
           await updateUberItemSuspension(storeId, map.externalId, isOutOfStock, token, isSandbox);
 
           const liveStatus = isOutOfStock ? 'SUSPENDED_OUT_OF_STOCK' : 'SYNCED';
-          await prisma.externalProductMap.update({
+          await db.externalProductMap.update({
             where: { id: map.id },
             data: {
               syncStatus: liveStatus,
@@ -1810,12 +1836,31 @@ export async function syncUberEatsInventoryAction(productId: string, tenantId: s
  */
 export async function batchMapCatalogToUberEats(branchId?: string) {
   const currentBranch = await getActiveBranch();
+  const user = await getActiveUser();
+  if (user?.tenantId && user.tenantId !== '0d246cea-0220-4328-92b0-8a1387ce6a6d') {
+    throw new Error('El mapeo de catálogo para Uber Eats es exclusivo para el cliente Pizca de Azúcar.');
+  }
   const targetBranchId = branchId || (currentBranch.id !== 'GLOBAL' ? currentBranch.id : '');
 
-  const products = await prisma.product.findMany({
+  const tenantId = '0d246cea-0220-4328-92b0-8a1387ce6a6d';
+  const { getClientForTenant } = await import('@/lib/prisma');
+  const db = getClientForTenant(tenantId);
+
+  let branchFilter: any = {};
+  if (targetBranchId) {
+    branchFilter = { branchId: targetBranchId };
+  } else if (tenantId) {
+    const tenantBranches = await db.branch.findMany({
+      where: { tenantId, isActive: true },
+      select: { id: true }
+    });
+    branchFilter = { branchId: { in: tenantBranches.map(b => b.id) } };
+  }
+
+  const products = await db.product.findMany({
     where: {
       isActive: true,
-      ...(targetBranchId ? { branchId: targetBranchId } : {})
+      ...branchFilter
     },
     include: {
       externalMaps: {
@@ -1833,7 +1878,7 @@ export async function batchMapCatalogToUberEats(branchId?: string) {
     const externalId = product.sku?.trim() || product.barcode?.trim() || `ITEM-${product.id.substring(0, 8).toUpperCase()}`;
 
     if (existingMap) {
-      await prisma.externalProductMap.update({
+      await db.externalProductMap.update({
         where: { id: existingMap.id },
         data: {
           syncStatus: initialStatus,
@@ -1841,7 +1886,7 @@ export async function batchMapCatalogToUberEats(branchId?: string) {
         }
       });
     } else {
-      await prisma.externalProductMap.create({
+      await db.externalProductMap.create({
         data: {
           productId: product.id,
           platform: 'UBER_EATS',
@@ -1870,12 +1915,17 @@ export async function simulateUberStockChangeEvent(productId: string, newStock: 
     throw new Error('Producto y nuevo stock son requeridos.');
   }
 
-  const updatedProduct = await prisma.product.update({
+  const user = await getActiveUser().catch(() => null);
+  const tenantId = user?.tenantId || '0d246cea-0220-4328-92b0-8a1387ce6a6d';
+  const { getClientForTenant } = await import('@/lib/prisma');
+  const db = tenantId ? getClientForTenant(tenantId) : prisma;
+
+  const updatedProduct = await db.product.update({
     where: { id: productId },
     data: { stock: newStock }
   });
 
-  const syncResult = await syncUberEatsInventoryAction(productId, null);
+  const syncResult = await syncUberEatsInventoryAction(productId, tenantId);
 
   revalidatePath('/integraciones/ubereats');
   return {

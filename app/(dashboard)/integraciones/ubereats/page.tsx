@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { getActiveBranch, getActiveUser } from '@/app/actions/auth';
 import BackButton from '@/app/components/ui/BackButton';
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import UberEatsClient from './UberEatsClient';
 
 interface UberEatsPageProps {
@@ -11,6 +12,11 @@ interface UberEatsPageProps {
 export default async function UberEatsConfigPage({ searchParams }: UberEatsPageProps) {
   const branch = await getActiveBranch();
   const user = await getActiveUser();
+
+  if (user?.tenantId && user.tenantId !== '0d246cea-0220-4328-92b0-8a1387ce6a6d') {
+    redirect('/integraciones');
+  }
+
   const isGlobal = !branch || branch.id === 'GLOBAL';
   const safeBranch = branch || { id: 'GLOBAL', name: 'Todas las Sucursales' };
 
@@ -139,10 +145,26 @@ export default async function UberEatsConfigPage({ searchParams }: UberEatsPageP
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
         <BackButton fallbackHref="/integraciones" label="" iconSize={24} />
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '1.75rem' }}>🛵</span> Integración Oficial de Uber Eats
-          </h1>
-          <p style={{ color: 'var(--caanma-text-muted)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+              <span style={{ fontSize: '1.75rem' }}>🛵</span> Integración Oficial de Uber Eats
+            </h1>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              backgroundColor: '#fef3c7',
+              color: '#92400e',
+              border: '1px solid #fde68a',
+              borderRadius: '999px',
+              padding: '0.25rem 0.75rem',
+              fontSize: '0.8rem',
+              fontWeight: '700'
+            }}>
+              🍰 Cliente: {user?.tenant?.name || 'Pizca de Azúcar'} (100% Independiente)
+            </span>
+          </div>
+          <p style={{ color: 'var(--caanma-text-muted)', margin: '0.35rem 0 0 0' }}>
             Sincroniza pedidos en tiempo real vía Webhooks y actualiza la disponibilidad de existencias de tu menú automáticamente.
           </p>
         </div>

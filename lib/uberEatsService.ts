@@ -291,16 +291,14 @@ export async function denyUberPosOrder(
 export async function processUberEatsOrder(
   order: any,
   branchId: string,
-  userId?: string
+  userId?: string,
+  targetTenantId?: string
 ) {
   const orderId = order.id || order.order_id || String(order.display_id || Date.now());
 
-  // Resolve tenant database client
-  const branchRecord = await masterClient.branch.findUnique({
-    where: { id: branchId }
-  }).catch(() => null);
-  const tenantId = branchRecord?.tenantId || null;
-  const db: any = tenantId ? getClientForTenant(tenantId) : prisma;
+  // Uber Eats orders are strictly and exclusively processed for Pizca de Azúcar
+  const tenantId = '0d246cea-0220-4328-92b0-8a1387ce6a6d';
+  const db: any = getClientForTenant(tenantId);
 
   // 1. Deduplication check: verify if order was already recorded
   const existingSale = await db.sale.findFirst({

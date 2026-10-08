@@ -28,6 +28,7 @@ declare const globalThis: {
 } & typeof global;
 
 const meliIntegrationActiveCache = new Map<string, boolean>();
+const uberIntegrationActiveCache = new Map<string, boolean>();
 
 function registerMeliStockSyncMiddleware(client: PrismaClient, tenantId: string | null) {
   client.$use(async (params, next) => {
@@ -99,14 +100,27 @@ function registerMeliStockSyncMiddleware(client: PrismaClient, tenantId: string 
         }
       }
 
-      // Encolar sincronización de inventario espejo con Uber Eats
-      try {
-        const { enqueueUberStockSync } = await import('@/lib/uberSyncQueue');
-        for (const productId of productsToSync) {
-          enqueueUberStockSync(productId, tenantId);
+      // Uber Eats inventory mirror sync is strictly and exclusively for Pizca de Azúcar
+      if (tenantId === '0d246cea-0220-4328-92b0-8a1387ce6a6d') {
+        let isUberActive = uberIntegrationActiveCache.get(tenantId);
+        if (isUberActive === undefined) {
+          const count = await client.storeIntegration.count({
+            where: { platform: 'UBER_EATS', isActive: true }
+          });
+          isUberActive = count > 0;
+          uberIntegrationActiveCache.set(tenantId, isUberActive);
         }
-      } catch (uberQueueErr) {
-        console.error('[PRISMA MIDDLEWARE] Error encolando sync para Uber Eats:', uberQueueErr);
+
+        if (isUberActive) {
+          try {
+            const { enqueueUberStockSync } = await import('@/lib/uberSyncQueue');
+            for (const productId of productsToSync) {
+              enqueueUberStockSync(productId, tenantId);
+            }
+          } catch (uberQueueErr) {
+            console.error('[PRISMA MIDDLEWARE] Error encolando sync para Uber Eats:', uberQueueErr);
+          }
+        }
       }
     } catch (err) {
       console.error('[PRISMA MIDDLEWARE] Error parsing product update:', err);

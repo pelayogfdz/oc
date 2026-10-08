@@ -77,6 +77,77 @@ export function calculateTaxBreakdown(
   return { subtotal, iva, ieps, exento, total };
 }
 
+export interface QuoteItemCalculationInput {
+  price: number; // Precio con IVA incluido
+  quantity: number;
+  taxRate?: number;
+  taxType?: string;
+}
+
+export interface QuoteInstitutionalBreakdownResult {
+  items: {
+    unitBeforeIva: number;
+    rowSubtotalBeforeIva: number;
+    rowIva: number;
+    rowTotal: number;
+  }[];
+  subtotal: number;
+  iva: number;
+  total: number;
+}
+
+/**
+ * Motor de cuadratura institucional de cotizaciones (Opción 1):
+ * - Redondeo horizontal exacto renglón por renglón: (PrecioUnitarioSinIva a 2 dec) * Cantidad = Subtotal
+ * - Consistencia vertical estricta: Suma de Subtotales = Subtotal General, IVA al 16% = IVA General, Total = Subtotal + IVA
+ */
+export function calculateQuoteInstitutionalBreakdown(
+  items: QuoteItemCalculationInput[]
+): QuoteInstitutionalBreakdownResult {
+  let subtotal = 0;
+  let totalIva = 0;
+
+  const processed = items.map(item => {
+    const rate = (item.taxType === 'IVA' || item.taxType === 'IVA_IEPS' || !item.taxType)
+      ? (item.taxRate ?? 16.0)
+      : (item.taxType === 'EXENTO' ? 0 : (item.taxRate ?? 0));
+    
+    const rawUnitBeforeIva = item.price / (1 + rate / 100);
+    const unitBeforeIva = Math.round(rawUnitBeforeIva * 100) / 100;
+    const rowSubtotalBeforeIva = Math.round((unitBeforeIva * item.quantity) * 100) / 100;
+    const rowIva = Math.round((rowSubtotalBeforeIva * (rate / 100)) * 100) / 100;
+    const rowTotal = Math.round((rowSubtotalBeforeIva + rowIva) * 100) / 100;
+
+    subtotal += rowSubtotalBeforeIva;
+    totalIva += rowIva;
+
+    return {
+      unitBeforeIva,
+      rowSubtotalBeforeIva,
+      rowIva,
+      rowTotal
+    };
+  });
+
+  subtotal = Math.round(subtotal * 100) / 100;
+
+  const hasUniform16 = items.length > 0 && items.every(it => {
+    const r = it.taxRate ?? 16.0;
+    const t = it.taxType || 'IVA';
+    return (t === 'IVA' || t === 'IVA_IEPS') && r === 16.0;
+  });
+
+  const finalIva = hasUniform16 ? Math.round((subtotal * 0.16) * 100) / 100 : Math.round(totalIva * 100) / 100;
+  const total = Math.round((subtotal + finalIva) * 100) / 100;
+
+  return {
+    items: processed,
+    subtotal,
+    iva: finalIva,
+    total
+  };
+}
+
 export interface CreditCustomerInput {
   creditLimit: number;
   creditBalance: number;

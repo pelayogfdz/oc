@@ -14,9 +14,11 @@ export default async function IntegracionesPage() {
     orderBy: { createdAt: 'desc' }
   });
 
+  const isPizca = branch?.tenantId === '0d246cea-0220-4328-92b0-8a1387ce6a6d';
+
   const platforms = [
     { id: 'MERCADO_LIBRE', name: 'Mercado Libre', slug: 'mercadolibre', icon: '🛒', color: '#ffe600', text: '#333' },
-    { id: 'UBER_EATS', name: 'Uber Eats', slug: 'ubereats', icon: '🛵', color: '#06C167', text: '#fff' },
+    ...(isPizca ? [{ id: 'UBER_EATS', name: 'Uber Eats', slug: 'ubereats', icon: '🛵', color: '#06C167', text: '#fff' }] : []),
     { id: 'RAPPI', name: 'Rappi', slug: 'rappi', icon: '🍊', color: '#FF441F', text: '#fff' },
     { id: 'AMAZON', name: 'Amazon Seller', slug: 'amazon', icon: '📦', color: '#ff9900', text: '#fff' },
     { id: 'WALMART', name: 'Walmart Marketplace', slug: 'walmart', icon: '🏪', color: '#0071ce', text: '#fff' },

@@ -103,7 +103,9 @@ export default async function ImprimirCotizacionPage({
 
   const storedTotalIncludingIva = quote.items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
   const quoteTotal = quote.total;
-  const prorationRatio = storedTotalIncludingIva > quoteTotal + 0.01 ? (quoteTotal / storedTotalIncludingIva) : 1.0;
+  // Solo aplicar prorrateo si existe un descuento intencional (> $5.00 de diferencia con respecto al precio de lista)
+  const isIntentionalDiscount = (storedTotalIncludingIva - quoteTotal) > 5.0;
+  const prorationRatio = isIntentionalDiscount ? (quoteTotal / storedTotalIncludingIva) : 1.0;
 
   const processedItems = quote.items.map((item: any) => {
     const originalPriceIncludingIva = item.product?.price || item.price;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateTaxBreakdown } from '@/lib/financialCalculations';
+import { calculateTaxBreakdown, calculateQuoteInstitutionalBreakdown } from '@/lib/financialCalculations';
 
 describe('calculateTaxBreakdown (Desglose fiscal mexicano)', () => {
   it('debe desglosar correctamente un producto con IVA 16%', () => {
@@ -144,5 +144,103 @@ describe('calculateTaxBreakdown (Desglose fiscal mexicano)', () => {
     expect(netSubtotal).toBe(78578.35);
     expect(totalIva).toBe(12572.54);
     expect(grandTotal).toBe(91150.89);
+  });
+
+  describe('calculateQuoteInstitutionalBreakdown (Motor unificado de cotizaciones)', () => {
+    it('debe calcular con exactitud institucional la orden CCL (#QUE-3050)', () => {
+      const items = [
+        { price: 62.00, quantity: 50, taxRate: 16, taxType: 'IVA' },
+        { price: 33.00, quantity: 50, taxRate: 16, taxType: 'IVA' },
+        { price: 62.00, quantity: 105, taxRate: 16, taxType: 'IVA' },
+        { price: 778.00, quantity: 100, taxRate: 16, taxType: 'IVA' },
+        { price: 8.00, quantity: 200, taxRate: 16, taxType: 'IVA' },
+        { price: 6.99, quantity: 70, taxRate: 16, taxType: 'IVA' }
+      ];
+
+      const res = calculateQuoteInstitutionalBreakdown(items);
+
+      expect(res.subtotal).toBe(78578.35);
+      expect(res.iva).toBe(12572.54);
+      expect(res.total).toBe(91150.89);
+      expect(Math.round((res.subtotal + res.iva) * 100) / 100).toBe(res.total);
+    });
+
+    it('debe manejar productos exentos correctamente', () => {
+      const items = [
+        { price: 100.00, quantity: 2, taxType: 'EXENTO' }
+      ];
+
+      const res = calculateQuoteInstitutionalBreakdown(items);
+
+      expect(res.items[0].unitBeforeIva).toBe(100.00);
+      expect(res.items[0].rowSubtotalBeforeIva).toBe(200.00);
+      expect(res.items[0].rowIva).toBe(0);
+      expect(res.items[0].rowTotal).toBe(200.00);
+      expect(res.subtotal).toBe(200.00);
+      expect(res.iva).toBe(0);
+      expect(res.total).toBe(200.00);
+    });
+
+    it('debe manejar partidas mixtas de tasa 16% y exento sin descuadre', () => {
+      const items = [
+        { price: 116.00, quantity: 1, taxRate: 16, taxType: 'IVA' },
+        { price: 50.00, quantity: 2, taxType: 'EXENTO' }
+      ];
+
+      const res = calculateQuoteInstitutionalBreakdown(items);
+
+      expect(res.items[0].unitBeforeIva).toBe(100.00);
+      expect(res.items[0].rowSubtotalBeforeIva).toBe(100.00);
+      expect(res.items[0].rowIva).toBe(16.00);
+
+      expect(res.items[1].unitBeforeIva).toBe(50.00);
+      expect(res.items[1].rowSubtotalBeforeIva).toBe(100.00);
+      expect(res.items[1].rowIva).toBe(0);
+
+      expect(res.subtotal).toBe(200.00);
+      expect(res.iva).toBe(16.00);
+      expect(res.total).toBe(216.00);
+      expect(Math.round((res.subtotal + res.iva) * 100) / 100).toBe(res.total);
+    });
+
+    it('debe calcular adecuadamente cantidades decimales o fraccionarias', () => {
+      const items = [
+        { price: 58.00, quantity: 2.5, taxRate: 16, taxType: 'IVA' } // 58 / 1.16 = 50.00
+      ];
+
+      const res = calculateQuoteInstitutionalBreakdown(items);
+
+      expect(res.items[0].unitBeforeIva).toBe(50.00);
+      expect(res.items[0].rowSubtotalBeforeIva).toBe(125.00);
+      expect(res.items[0].rowIva).toBe(20.00);
+      expect(res.subtotal).toBe(125.00);
+      expect(res.iva).toBe(20.00);
+      expect(res.total).toBe(145.00);
+      expect(Math.round((res.subtotal + res.iva) * 100) / 100).toBe(res.total);
+    });
+
+    it('debe garantizar consistencia estricta subtotal + iva = total en carritos masivos', () => {
+      const items = [];
+      for (let i = 1; i <= 50; i++) {
+        items.push({
+          price: 10 + (i * 3.77),
+          quantity: i * 3,
+          taxRate: 16,
+          taxType: 'IVA'
+        });
+      }
+
+      const res = calculateQuoteInstitutionalBreakdown(items);
+
+      expect(Math.round((res.subtotal + res.iva) * 100) / 100).toBe(res.total);
+    });
+
+    it('debe manejar carrito vacío sin arrojar error', () => {
+      const res = calculateQuoteInstitutionalBreakdown([]);
+      expect(res.subtotal).toBe(0);
+      expect(res.iva).toBe(0);
+      expect(res.total).toBe(0);
+      expect(res.items).toHaveLength(0);
+    });
   });
 });

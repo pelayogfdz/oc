@@ -123,7 +123,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {user && hasNodeAccess(userPermissions, 'whatsapp_widget', isSuperAdmin, userRole) && <FloatingWhatsappWidget />}
         {user && <CollaboratorTaskPopup userId={user.id} />}
         {user && <PriceChangesAlertPopup />}
-        {user && <MeliSalesAlertPopup />}
+        {user && <MeliSalesAlertPopup tenantId={user.tenantId} />}
         {user && <MeliQuestionsAlertPopup />}
       </MobileMenuProvider>
     </OfflineSyncProvider>

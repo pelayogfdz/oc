@@ -19,6 +19,13 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    if (user?.tenantId && user.tenantId !== '0d246cea-0220-4328-92b0-8a1387ce6a6d') {
+      return NextResponse.json({
+        connected: false,
+        message: 'La integración de Uber Eats es exclusiva para el cliente Pizca de Azúcar.'
+      });
+    }
+
     const isGlobal = !branch || branch.id === 'GLOBAL';
     let targetBranchId = branch.id;
 
@@ -108,6 +115,12 @@ export async function POST(req: Request) {
 
     if (!user) {
       return NextResponse.json({ error: 'No se encontró ningún usuario configurado.' }, { status: 400 });
+    }
+
+    if (user?.tenantId && user.tenantId !== '0d246cea-0220-4328-92b0-8a1387ce6a6d') {
+      return NextResponse.json({
+        error: 'No autorizado. La integración de Uber Eats es exclusiva para el cliente Pizca de Azúcar.'
+      }, { status: 403 });
     }
 
     let body = {};
@@ -213,7 +226,7 @@ export async function POST(req: Request) {
         }
       };
 
-      simulatedSale = await processUberEatsOrder(simulatedPayload, targetBranchId, user.id);
+      simulatedSale = await processUberEatsOrder(simulatedPayload, targetBranchId, user.id, '0d246cea-0220-4328-92b0-8a1387ce6a6d');
     }
 
     return NextResponse.json({
