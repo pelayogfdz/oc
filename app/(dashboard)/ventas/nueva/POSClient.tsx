@@ -2445,8 +2445,32 @@ export default function POSClient({
   }, [subTotal, itemDiscounts, manualDiscountValue, manualDiscountType]);
 
   let total = subTotal - discount;
-  if (ventasConfig.redondeo === 'redondeo_50') total = Math.round(total * 2) / 2;
-  if (ventasConfig.redondeo === 'redondeo_100') total = Math.round(total);
+  if (mode === 'QUOTE') {
+    let quoteSubtotal = 0;
+    cart.forEach(item => {
+      const itemPrice = getProductPrice(item);
+      const taxRate = item.taxRate ?? 16.0;
+      const taxFactor = 1 + (taxRate / 100);
+      const unitSinIva = Math.round((itemPrice / taxFactor) * 100) / 100;
+      quoteSubtotal += Math.round((unitSinIva * item.quantity) * 100) / 100;
+    });
+    quoteSubtotal = Math.round(quoteSubtotal * 100) / 100;
+    const allUniform16 = cart.length > 0 && cart.every(it => (it.taxRate ?? 16.0) === 16.0);
+    const quoteIva = allUniform16 
+      ? Math.round((quoteSubtotal * 0.16) * 100) / 100
+      : Math.round(cart.reduce((sum, item) => {
+          const itemPrice = getProductPrice(item);
+          const taxRate = item.taxRate ?? 16.0;
+          const taxFactor = 1 + (taxRate / 100);
+          const unitSinIva = Math.round((itemPrice / taxFactor) * 100) / 100;
+          const rowSubtotal = Math.round((unitSinIva * item.quantity) * 100) / 100;
+          return sum + Math.round((rowSubtotal * (taxRate / 100)) * 100) / 100;
+        }, 0) * 100) / 100;
+    total = Math.round((quoteSubtotal + quoteIva - discount) * 100) / 100;
+  } else {
+    if (ventasConfig.redondeo === 'redondeo_50') total = Math.round(total * 2) / 2;
+    if (ventasConfig.redondeo === 'redondeo_100') total = Math.round(total);
+  }
   
   const totalCost = useMemo(() => cart.reduce((sum, item) => sum + (parseFloat(item.cost || '0') * item.quantity), 0), [cart]);
   const estimatedProfit = total > 0 ? (total - totalCost) : 0;
@@ -2460,6 +2484,30 @@ export default function POSClient({
   const change = (typeof amountReceived === 'number' ? amountReceived : 0) - finalTotalWithTip;
 
   const scaledTaxBreakdown = useMemo(() => {
+    if (mode === 'QUOTE') {
+      let quoteSubtotal = 0;
+      let quoteIva = 0;
+      cart.forEach(item => {
+        const itemPrice = getProductPrice(item);
+        const taxRate = item.taxRate ?? 16.0;
+        const taxFactor = 1 + (taxRate / 100);
+        const unitSinIva = Math.round((itemPrice / taxFactor) * 100) / 100;
+        const rowSubtotal = Math.round((unitSinIva * item.quantity) * 100) / 100;
+        const rowIva = Math.round((rowSubtotal * (taxRate / 100)) * 100) / 100;
+        quoteSubtotal += rowSubtotal;
+        quoteIva += rowIva;
+      });
+      quoteSubtotal = Math.round(quoteSubtotal * 100) / 100;
+      const allUniform16 = cart.length > 0 && cart.every(it => (it.taxRate ?? 16.0) === 16.0);
+      const finalIva = allUniform16 ? Math.round((quoteSubtotal * 0.16) * 100) / 100 : Math.round(quoteIva * 100) / 100;
+      return {
+        iva: finalIva,
+        ieps: 0,
+        exento: 0,
+        subtotal: quoteSubtotal
+      };
+    }
+
     let totalIva = 0;
     let totalIeps = 0;
     let totalExento = 0;
@@ -2506,7 +2554,7 @@ export default function POSClient({
       exento: totalExento * factor,
       subtotal: totalSubtotal * factor
     };
-  }, [cart, subTotal, total, priceList]);
+  }, [cart, subTotal, total, priceList, mode, getProductPrice]);
 
   const printTicket = async (cartItems: any[], tTotal: number, tChange: number, tDiscount: number, saleId?: string, folio?: string) => {
     let ticketIva = 0;
@@ -4353,8 +4401,10 @@ export default function POSClient({
                         const taxFactor = 1 + (taxRate / 100);
                         const priceWithIvaVal = item.customPrice !== undefined ? item.customPrice : itemPrice;
                         const priceWithIva = priceWithIvaVal !== '' && priceWithIvaVal !== null ? parseFloat(priceWithIvaVal as any) : 0;
-                        const priceBeforeIva = priceWithIva / taxFactor;
-                        const ivaAmount = priceWithIva - priceBeforeIva;
+                        const priceBeforeIva = Math.round((priceWithIva / taxFactor) * 100) / 100;
+                        const rowSubtotalBeforeIva = Math.round((priceBeforeIva * item.quantity) * 100) / 100;
+                        const ivaAmount = Math.round((rowSubtotalBeforeIva * (taxRate / 100)) * 100) / 100;
+                        const rowTotal = Math.round((rowSubtotalBeforeIva + ivaAmount) * 100) / 100;
                         
                         return (
                           <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
@@ -4455,11 +4505,11 @@ export default function POSClient({
                               width: 'fit-content',
                               marginTop: '0.15rem' 
                             }}>
-                              <span>Subtotal (sin IVA): <strong>{formatCurrency(priceBeforeIva * item.quantity)}</strong></span>
+                              <span>Subtotal (sin IVA): <strong>{formatCurrency(rowSubtotalBeforeIva)}</strong></span>
                               <span style={{ color: '#cbd5e1' }}>|</span>
-                              <span>IVA ({taxRate}%): <strong>{formatCurrency(ivaAmount * item.quantity)}</strong></span>
+                              <span>IVA ({taxRate}%): <strong>{formatCurrency(ivaAmount)}</strong></span>
                               <span style={{ color: '#cbd5e1' }}>|</span>
-                              <span>Total: <strong style={{ color: '#0f172a' }}>{formatCurrency(priceWithIva * item.quantity)}</strong></span>
+                              <span>Total: <strong style={{ color: '#0f172a' }}>{formatCurrency(rowTotal)}</strong></span>
                             </div>
                           </div>
                         );
@@ -4570,17 +4620,33 @@ export default function POSClient({
 
                     {/* Subtotal */}
                     <div className="pos-cart-item-subtotal" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
-                      {(breakdownDiscounts) && itemDiscounts[item.cartItemId] > 0 ? (
-                        <>
-                          <span style={{ fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'line-through' }}>
-                            {formatCurrency(itemSubtotal)}
+                      {mode === 'QUOTE' ? (() => {
+                        const taxRate = item.taxRate ?? 16.0;
+                        const taxFactor = 1 + (taxRate / 100);
+                        const priceWithIvaVal = item.customPrice !== undefined ? item.customPrice : itemPrice;
+                        const priceWithIva = priceWithIvaVal !== '' && priceWithIvaVal !== null ? parseFloat(priceWithIvaVal as any) : 0;
+                        const priceBeforeIva = Math.round((priceWithIva / taxFactor) * 100) / 100;
+                        const rowSubtotalBeforeIva = Math.round((priceBeforeIva * item.quantity) * 100) / 100;
+                        const ivaAmount = Math.round((rowSubtotalBeforeIva * (taxRate / 100)) * 100) / 100;
+                        const rowTotal = Math.round((rowSubtotalBeforeIva + ivaAmount) * 100) / 100;
+                        return (
+                          <span style={{ fontWeight: 'bold' }}>
+                            {formatCurrency(rowTotal)}
                           </span>
-                          <span style={{ color: '#db2777', fontWeight: 'bold' }}>
-                            {formatCurrency(itemSubtotal - itemDiscounts[item.cartItemId])}
-                          </span>
-                        </>
-                      ) : (
-                        formatCurrency(itemSubtotal - itemDiscounts[item.cartItemId])
+                        );
+                      })() : (
+                        (breakdownDiscounts) && itemDiscounts[item.cartItemId] > 0 ? (
+                          <>
+                            <span style={{ fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'line-through' }}>
+                              {formatCurrency(itemSubtotal)}
+                            </span>
+                            <span style={{ color: '#db2777', fontWeight: 'bold' }}>
+                              {formatCurrency(itemSubtotal - itemDiscounts[item.cartItemId])}
+                            </span>
+                          </>
+                        ) : (
+                          formatCurrency(itemSubtotal - itemDiscounts[item.cartItemId])
+                        )
                       )}
                     </div>
 

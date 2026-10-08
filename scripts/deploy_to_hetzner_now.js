@@ -47,6 +47,7 @@ conn.on('ready', () => {
         'docker compose up -d --no-deps web whatsapp',
         'sleep 4',
         'docker compose exec -T web node -e "const { execSync } = require(\'child_process\'); [\'neondb\', \'neondb_officecity\', \'neondb_petqro\', \'neondb_seit\', \'neondb_pizca\'].forEach(db => { try { console.log(\'Syncing schema for: \' + db); execSync(\'npx prisma db push --skip-generate --accept-data-loss\', { env: { ...process.env, DATABASE_URL: \'postgresql://postgres:caanma_postgres_secure_2026@db:5432/\' + db + \'?sslmode=disable\' }, stdio: \'inherit\' }); } catch(e){ console.error(\'Error pushing to \' + db, e.message); } });" || true',
+        'docker compose exec -T web node scripts/sync_db_quotes.js || true',
         'docker compose ps',
         'curl -s -I http://127.0.0.1:3000/login | head -n 5 || true'
       ].join(' && ');

@@ -31,7 +31,8 @@ export async function createQuote(
   
   if (items.length === 0) throw new Error("Quote is empty");
 
-  const calculatedTotal = breakdownDiscounts
+  // Usar el total explícito calculado por el cotizador institucional (con cuadratura renglón por renglón)
+  const calculatedTotal = (typeof total === 'number' && total > 0)
     ? total
     : items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
