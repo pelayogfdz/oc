@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit';
+import { calculateQuoteInstitutionalBreakdown } from './financialCalculations';
 
 const formatMoney = (n: number) => '$' + (Number(n) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -158,11 +159,37 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
 
       renderTableHeader(tableTop);
 
+      // Pre-calculate exact institutional breakdown
+      const breakdownDiscounts = quote.breakdownDiscounts ?? false;
+      const storedTotalIncludingIva = quote.items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+      const isIntentionalDiscount = (storedTotalIncludingIva - quote.total) > 5.0;
+      const prorationRatio = isIntentionalDiscount ? (quote.total / storedTotalIncludingIva) : 1.0;
+
+      const breakdown = calculateQuoteInstitutionalBreakdown(
+        quote.items.map((item: any) => {
+          const originalPrice = (breakdownDiscounts && item.product?.price) ? item.product.price : item.price;
+          const finalPrice = item.price * prorationRatio;
+          return {
+            price: finalPrice,
+            quantity: item.quantity,
+            taxRate: item.product?.taxRate,
+            taxType: item.product?.taxType,
+            originalPrice: originalPrice > finalPrice ? originalPrice : undefined
+          };
+        })
+      );
+
       // Table Rows
       let currentY = tableTop + 18;
-      quote.items.forEach((item: any) => {
+      quote.items.forEach((item: any, idx: number) => {
+        const rowData = breakdown.items[idx];
+        const taxRate = item.product?.taxRate ?? 16.0;
+        const taxType = item.product?.taxType || 'IVA';
+        const isIva = taxType === 'IVA' || taxType === 'IVA_IEPS';
+        const rate = isIva ? taxRate : 0;
+
         doc.fontSize(8);
-        const nameHeight = doc.heightOfString(item.product?.name || 'Artículo', { width: 175 });
+        const nameHeight = doc.heightOfString(item.product?.name || (item as any).productName || 'Artículo', { width: 175 });
         const rowHeight = Math.max(18, Math.min(32, nameHeight + 6));
 
         // Check if row overflows page (budget height ~670pt)
@@ -176,29 +203,19 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
         // Draw light row separator
         doc.strokeColor('#f1f5f9').lineWidth(0.5).moveTo(40, currentY + rowHeight).lineTo(572, currentY + rowHeight).stroke();
 
-        const taxRate = item.product?.taxRate ?? 16.0;
-        const taxType = item.product?.taxType || 'IVA';
-        const isIva = taxType === 'IVA' || taxType === 'IVA_IEPS';
-        const rate = isIva ? taxRate : 0;
-
-        const finalPriceIncludingIva = item.price;
-        const finalPriceExcludingIva = finalPriceIncludingIva / (1 + rate / 100);
-        const rowImporteExcludingIva = finalPriceExcludingIva * item.quantity;
-        const rowIva = (finalPriceIncludingIva - finalPriceExcludingIva) * item.quantity;
-
         doc.font(fontRegular).fontSize(8).fillColor('#1e293b');
         doc.text(String(item.quantity), 44, currentY + 4, { width: 32, align: 'center' });
         
         doc.font(fontRegular).fontSize(7).fillColor('#64748b');
-        const codeText = item.product?.sku || item.product?.barcode || '-';
+        const codeText = item.product?.sku || (item as any).productSku || item.product?.barcode || '-';
         doc.text(codeText, 80, currentY + 4, { width: 85, align: 'left', ellipsis: true });
         
         doc.font(fontRegular).fontSize(8).fillColor('#0f172a');
-        doc.text(item.product?.name || 'Artículo', 170, currentY + 4, { width: 175, align: 'left', height: rowHeight - 4, ellipsis: true });
+        doc.text(item.product?.name || (item as any).productName || 'Artículo', 170, currentY + 4, { width: 175, align: 'left', height: rowHeight - 4, ellipsis: true });
 
-        doc.text(formatMoney(finalPriceExcludingIva), 350, currentY + 4, { width: 68, align: 'right' });
-        doc.font(fontRegular).fontSize(7).fillColor('#64748b').text(`${rate}% (${formatMoney(rowIva)})`, 422, currentY + 4, { width: 65, align: 'right' });
-        doc.font(fontBold).fontSize(8).fillColor('#0f172a').text(formatMoney(rowImporteExcludingIva), 492, currentY + 4, { width: 74, align: 'right' });
+        doc.text(formatMoney(rowData.unitBeforeIva), 350, currentY + 4, { width: 68, align: 'right' });
+        doc.font(fontRegular).fontSize(7).fillColor('#64748b').text(`${rate}% (${formatMoney(rowData.rowIva)})`, 422, currentY + 4, { width: 65, align: 'right' });
+        doc.font(fontBold).fontSize(8).fillColor('#0f172a').text(formatMoney(rowData.rowSubtotalBeforeIva), 492, currentY + 4, { width: 74, align: 'right' });
 
         currentY += rowHeight;
       });
@@ -210,65 +227,36 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
         bottomY = 40;
       }
 
-      // Calculate totals
-      const breakdownDiscounts = quote.breakdownDiscounts ?? false;
-      let originalListTotalWithIva = 0;
-      let finalTotalWithIva = quote.total;
-      let subtotalExcludingIva = 0;
-      let discountExcludingIva = 0;
-      let totalIva = 0;
-
-      const storedTotalIncludingIva = quote.items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
-      const prorationRatio = (breakdownDiscounts && storedTotalIncludingIva > quote.total + 0.01) ? (quote.total / storedTotalIncludingIva) : 1.0;
-
-      quote.items.forEach((item: any) => {
-        const taxRate = item.product?.taxRate ?? 16.0;
-        const taxType = item.product?.taxType || 'IVA';
-        const isIva = taxType === 'IVA' || taxType === 'IVA_IEPS';
-        const rate = isIva ? taxRate : 0;
-
-        const originalPrice = breakdownDiscounts ? (item.product?.price || item.price) : item.price;
-        const finalPrice = item.price * prorationRatio;
-
-        originalListTotalWithIva += originalPrice * item.quantity;
-
-        const itemSubtotalExcludingIva = (originalPrice / (1 + rate / 100)) * item.quantity;
-        subtotalExcludingIva += itemSubtotalExcludingIva;
-
-        const itemFinalPriceExcludingIva = (finalPrice / (1 + rate / 100)) * item.quantity;
-        const itemDiscountExcludingIva = itemSubtotalExcludingIva - itemFinalPriceExcludingIva;
-        discountExcludingIva += Math.max(0, itemDiscountExcludingIva);
-
-        const itemIva = (finalPrice - (finalPrice / (1 + rate / 100))) * item.quantity;
-        totalIva += itemIva;
-      });
-
       // Right Column: Totals Box
       const totalsX = 350;
       doc.strokeColor('#cbd5e1').lineWidth(0.75).moveTo(totalsX, bottomY).lineTo(572, bottomY).stroke();
       let totY = bottomY + 6;
 
-      doc.font(fontRegular).fontSize(8).fillColor('#475569');
-      doc.text('Subtotal:', totalsX, totY, { width: 100, align: 'left' });
-      doc.text(formatMoney(subtotalExcludingIva), 450, totY, { width: 116, align: 'right' });
-      totY += 13;
+      if (breakdownDiscounts && breakdown.discount > 0.01) {
+        doc.font(fontRegular).fontSize(8).fillColor('#475569');
+        doc.text('Subtotal:', totalsX, totY, { width: 100, align: 'left' });
+        doc.text(formatMoney(breakdown.grossSubtotal), 450, totY, { width: 116, align: 'right' });
+        totY += 13;
 
-      if (breakdownDiscounts && discountExcludingIva > 0.01) {
         doc.fillColor('#ef4444');
         doc.text('Descuento:', totalsX, totY, { width: 100, align: 'left' });
-        doc.text(`-${formatMoney(discountExcludingIva)}`, 450, totY, { width: 116, align: 'right' });
+        doc.text(`-${formatMoney(breakdown.discount)}`, 450, totY, { width: 116, align: 'right' });
         totY += 13;
 
         doc.fillColor('#475569');
         doc.font(fontBold).text('Subtotal Neto:', totalsX, totY, { width: 100, align: 'left' });
-        const netExcludingIva = subtotalExcludingIva - discountExcludingIva;
-        doc.text(formatMoney(netExcludingIva), 450, totY, { width: 116, align: 'right' });
+        doc.text(formatMoney(breakdown.subtotal), 450, totY, { width: 116, align: 'right' });
         doc.font(fontRegular);
+        totY += 13;
+      } else {
+        doc.font(fontRegular).fontSize(8).fillColor('#475569');
+        doc.text('Subtotal:', totalsX, totY, { width: 100, align: 'left' });
+        doc.text(formatMoney(breakdown.subtotal), 450, totY, { width: 116, align: 'right' });
         totY += 13;
       }
 
       doc.font(fontRegular).fillColor('#475569').text('IVA (16%):', totalsX, totY, { width: 100, align: 'left' });
-      doc.text(formatMoney(totalIva), 450, totY, { width: 116, align: 'right' });
+      doc.text(formatMoney(breakdown.iva), 450, totY, { width: 116, align: 'right' });
       totY += 14;
 
       doc.strokeColor('#0f172a').lineWidth(1.2).moveTo(totalsX, totY).lineTo(572, totY).stroke();
@@ -276,7 +264,7 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
 
       doc.font(fontBold).fontSize(10).fillColor('#0f172a');
       doc.text('Total:', totalsX, totY, { width: 100, align: 'left' });
-      doc.text(formatMoney(finalTotalWithIva), 450, totY, { width: 116, align: 'right' });
+      doc.text(formatMoney(breakdown.total), 450, totY, { width: 116, align: 'right' });
       totY += 18;
 
       // Left Column: Terms & Conditions + Observations

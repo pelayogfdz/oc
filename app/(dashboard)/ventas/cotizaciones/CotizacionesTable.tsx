@@ -227,7 +227,18 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
           </tr>
         </thead>
         <tbody>
-          {filteredQuotes.map((quote) => (
+          {filteredQuotes.map((quote) => {
+            const breakdown = (quote.items && quote.items.length > 0)
+              ? calculateQuoteInstitutionalBreakdown(quote.items.map((i: any) => ({
+                  price: i.price,
+                  quantity: i.quantity,
+                  taxRate: i.product?.taxRate,
+                  taxType: i.product?.taxType
+                })))
+              : null;
+            const displayTotal = (breakdown && Math.abs(quote.total - breakdown.total) < 10) ? breakdown.total : quote.total;
+
+            return (
             <tr key={quote.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
               <td data-label="ID Cotización" style={{ padding: '0.4rem 0.75rem' }}>
                 <div className="quote-id-wrapper">
@@ -287,16 +298,10 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                         </table>
                       </div>
                       {(() => {
-                        const totalPurchaseCost = quote.items.reduce((sum: number, i: any) => sum + ((i.cost || i.product?.averageCost || i.product?.cost || 0) * i.quantity), 0);
-                        const totalMarginPercent = quote.total > 0 ? ((quote.total - totalPurchaseCost) / quote.total) * 100 : 0;
-                        const breakdown = calculateQuoteInstitutionalBreakdown(quote.items.map((i: any) => ({
-                          price: i.price,
-                          quantity: i.quantity,
-                          taxRate: i.product?.taxRate,
-                          taxType: i.product?.taxType
-                        })));
-                        const subtotalSinIva = breakdown.subtotal;
-                        const ivaTotal = breakdown.iva;
+                        const totalPurchaseCost = quote.items ? quote.items.reduce((sum: number, i: any) => sum + ((i.cost || i.product?.averageCost || i.product?.cost || 0) * i.quantity), 0) : 0;
+                        const totalMarginPercent = displayTotal > 0 ? ((displayTotal - totalPurchaseCost) / displayTotal) * 100 : 0;
+                        const subtotalSinIva = breakdown ? breakdown.subtotal : quote.total;
+                        const ivaTotal = breakdown ? breakdown.iva : 0;
 
                         return (
                           <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem' }}>
@@ -327,7 +332,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                       })()}
                       <div className="quote-tooltip-footer">
                         <span className="quote-tooltip-total-label">TOTAL</span>
-                        <span className="quote-tooltip-total-val">{formatCurrency(quote.total)}</span>
+                        <span className="quote-tooltip-total-val">{formatCurrency(displayTotal)}</span>
                       </div>
                     </div>
                   </div>
@@ -355,7 +360,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                 </div>
               </td>
               <td data-label="Total" style={{ padding: '0.4rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>
-                <span style={{ fontSize: '0.875rem' }}>{formatCurrency(quote.total)}</span>
+                <span style={{ fontSize: '0.875rem' }}>{formatCurrency(displayTotal)}</span>
               </td>
               <td data-label="Estado" style={{ padding: '0.4rem 0.75rem' }}>
                 {quote.status === 'PENDING' ? (
@@ -385,11 +390,12 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                   customerPhone={quote.customer?.phone}
                   customerName={quote.customer?.name}
                   customerEmail={quote.customer?.email}
-                  quoteTotal={quote.total}
+                  quoteTotal={displayTotal}
                 />
               </td>
             </tr>
-          ))}
+          );
+        })}
           {filteredQuotes.length === 0 && (
             <tr>
               <td colSpan={7} style={{ padding: '4rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateTaxBreakdown, calculateQuoteInstitutionalBreakdown } from '@/lib/financialCalculations';
+import { generateQuotePdfBuffer } from '@/lib/quotePdf';
 
 describe('calculateTaxBreakdown (Desglose fiscal mexicano)', () => {
   it('debe desglosar correctamente un producto con IVA 16%', () => {
@@ -235,12 +236,61 @@ describe('calculateTaxBreakdown (Desglose fiscal mexicano)', () => {
       expect(Math.round((res.subtotal + res.iva) * 100) / 100).toBe(res.total);
     });
 
+    it('debe calcular adecuadamente descuentos de lista preservando cuadratura exacta', () => {
+      const items = [
+        { price: 16.00, quantity: 12, taxRate: 16, taxType: 'IVA', originalPrice: 19.00 }, // Sharpie Mayoreo
+        { price: 303.00, quantity: 1, taxRate: 16, taxType: 'IVA', originalPrice: 333.00 } // Mouse Mayoreo
+      ];
+
+      const res = calculateQuoteInstitutionalBreakdown(items);
+
+      expect(res.items[0].originalUnitBeforeIva).toBe(16.38);
+      expect(res.items[0].unitBeforeIva).toBe(13.79);
+      expect(res.items[0].rowGrossSubtotal).toBe(196.56);
+      expect(res.items[0].rowSubtotalBeforeIva).toBe(165.48);
+      expect(res.items[0].rowDiscount).toBe(31.08);
+
+      expect(res.items[1].originalUnitBeforeIva).toBe(287.07);
+      expect(res.items[1].unitBeforeIva).toBe(261.21);
+      expect(res.items[1].rowGrossSubtotal).toBe(287.07);
+      expect(res.items[1].rowSubtotalBeforeIva).toBe(261.21);
+      expect(res.items[1].rowDiscount).toBe(25.86);
+
+      expect(res.grossSubtotal).toBe(483.63);
+      expect(res.discount).toBe(56.94);
+      expect(res.subtotal).toBe(426.69);
+      expect(Math.round((res.grossSubtotal - res.discount) * 100) / 100).toBe(res.subtotal);
+      expect(res.iva).toBe(68.27);
+      expect(res.total).toBe(494.96);
+      expect(Math.round((res.subtotal + res.iva) * 100) / 100).toBe(res.total);
+    });
+
     it('debe manejar carrito vacío sin arrojar error', () => {
       const res = calculateQuoteInstitutionalBreakdown([]);
       expect(res.subtotal).toBe(0);
       expect(res.iva).toBe(0);
       expect(res.total).toBe(0);
       expect(res.items).toHaveLength(0);
+    });
+
+    it('debe generar el buffer PDF con cuadratura exacta para orden CCL', async () => {
+      const quote = {
+        id: 'test-quote-123',
+        folio: 'QUE-3050',
+        total: 91150.89,
+        items: [
+          { price: 62.00, quantity: 50, product: { name: 'DIEM PAPEL OPALINA', taxRate: 16, taxType: 'IVA' } },
+          { price: 33.00, quantity: 50, product: { name: 'PELIKAN BOLIGRAFO', taxRate: 16, taxType: 'IVA' } },
+          { price: 62.00, quantity: 105, product: { name: 'DIEM PAPEL OPALINA', taxRate: 16, taxType: 'IVA' } },
+          { price: 778.00, quantity: 100, product: { name: 'XEROX PAPEL BOND', taxRate: 16, taxType: 'IVA' } },
+          { price: 8.00, quantity: 200, product: { name: 'JANEL CINTA', taxRate: 16, taxType: 'IVA' } },
+          { price: 6.99, quantity: 70, product: { name: 'KOLA LOKA', taxRate: 16, taxType: 'IVA' } }
+        ]
+      };
+
+      const buffer = await generateQuotePdfBuffer(quote);
+      expect(buffer).toBeInstanceOf(Buffer);
+      expect(buffer.length).toBeGreaterThan(1000);
     });
   });
 });

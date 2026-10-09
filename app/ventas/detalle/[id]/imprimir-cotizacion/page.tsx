@@ -780,11 +780,11 @@ export default async function ImprimirCotizacionPage({
                   )}
                   <div className="pizca-summary-row" style={{ borderTop: '2px solid #cbd5e1' }}>
                     <span className="pizca-summary-label">PRECIO TOTAL:</span>
-                    <span className="pizca-summary-val" style={{ fontWeight: '900' }}>{formatCurrency(quote.total)}</span>
+                    <span className="pizca-summary-val" style={{ fontWeight: '900' }}>{formatCurrency(computedTotal)}</span>
                   </div>
                   <div className="pizca-summary-row">
                     <span className="pizca-summary-label">ANTICIPO (50% REQUERIDO):</span>
-                    <span className="pizca-summary-val">{formatCurrency(quote.total * 0.5)}</span>
+                    <span className="pizca-summary-val">{formatCurrency(computedTotal * 0.5)}</span>
                   </div>
                   <div className="pizca-summary-row">
                     <span className="pizca-summary-label">FORMA DE PAGO:</span>
@@ -792,7 +792,7 @@ export default async function ImprimirCotizacionPage({
                   </div>
                   <div className="pizca-summary-row" style={{ backgroundColor: '#e2e8f0' }}>
                     <span className="pizca-summary-label">RESTAN AL ENTREGAR:</span>
-                    <span className="pizca-summary-val" style={{ color: '#0f172a' }}>{formatCurrency(quote.total * 0.5)}</span>
+                    <span className="pizca-summary-val" style={{ color: '#0f172a' }}>{formatCurrency(computedTotal * 0.5)}</span>
                   </div>
                 </div>
               </div>
@@ -1334,7 +1334,7 @@ export default async function ImprimirCotizacionPage({
             )}
             <div className="total-final">
               <span>Total</span>
-              <span>{formatCurrency(quote.total)}</span>
+              <span>{formatCurrency(computedTotal)}</span>
             </div>
           </div>
         </div>

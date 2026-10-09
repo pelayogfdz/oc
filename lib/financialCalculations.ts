@@ -82,6 +82,7 @@ export interface QuoteItemCalculationInput {
   quantity: number;
   taxRate?: number;
   taxType?: string;
+  originalPrice?: number; // Precio de lista original si aplica
 }
 
 export interface QuoteInstitutionalBreakdownResult {
@@ -90,8 +91,13 @@ export interface QuoteInstitutionalBreakdownResult {
     rowSubtotalBeforeIva: number;
     rowIva: number;
     rowTotal: number;
+    originalUnitBeforeIva: number;
+    rowGrossSubtotal: number;
+    rowDiscount: number;
   }[];
   subtotal: number;
+  grossSubtotal: number;
+  discount: number;
   iva: number;
   total: number;
 }
@@ -105,6 +111,8 @@ export function calculateQuoteInstitutionalBreakdown(
   items: QuoteItemCalculationInput[]
 ): QuoteInstitutionalBreakdownResult {
   let subtotal = 0;
+  let grossSubtotal = 0;
+  let totalDiscount = 0;
   let totalIva = 0;
 
   const processed = items.map(item => {
@@ -118,18 +126,36 @@ export function calculateQuoteInstitutionalBreakdown(
     const rowIva = Math.round((rowSubtotalBeforeIva * (rate / 100)) * 100) / 100;
     const rowTotal = Math.round((rowSubtotalBeforeIva + rowIva) * 100) / 100;
 
+    let originalUnitBeforeIva = unitBeforeIva;
+    let rowGrossSubtotal = rowSubtotalBeforeIva;
+    let rowDiscount = 0;
+
+    if (item.originalPrice !== undefined && item.originalPrice !== null && item.originalPrice > item.price) {
+      const rawOrigUnit = item.originalPrice / (1 + rate / 100);
+      originalUnitBeforeIva = Math.round(rawOrigUnit * 100) / 100;
+      rowGrossSubtotal = Math.round((originalUnitBeforeIva * item.quantity) * 100) / 100;
+      rowDiscount = Math.max(0, Math.round((rowGrossSubtotal - rowSubtotalBeforeIva) * 100) / 100);
+    }
+
     subtotal += rowSubtotalBeforeIva;
+    grossSubtotal += rowGrossSubtotal;
+    totalDiscount += rowDiscount;
     totalIva += rowIva;
 
     return {
       unitBeforeIva,
       rowSubtotalBeforeIva,
       rowIva,
-      rowTotal
+      rowTotal,
+      originalUnitBeforeIva,
+      rowGrossSubtotal,
+      rowDiscount
     };
   });
 
   subtotal = Math.round(subtotal * 100) / 100;
+  grossSubtotal = Math.round(grossSubtotal * 100) / 100;
+  totalDiscount = Math.round(totalDiscount * 100) / 100;
 
   const hasUniform16 = items.length > 0 && items.every(it => {
     const r = it.taxRate ?? 16.0;
@@ -143,6 +169,8 @@ export function calculateQuoteInstitutionalBreakdown(
   return {
     items: processed,
     subtotal,
+    grossSubtotal,
+    discount: totalDiscount,
     iva: finalIva,
     total
   };
