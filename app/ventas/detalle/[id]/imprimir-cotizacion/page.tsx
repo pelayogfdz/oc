@@ -116,20 +116,18 @@ export default async function ImprimirCotizacionPage({
     const isIva = taxType === 'IVA' || taxType === 'IVA_IEPS';
     const rate = isIva ? taxRate : 0;
 
-    // Redondear el precio unitario antes de impuestos a 2 decimales para consistencia matemática horizontal:
-    // Cantidad * Precio Unitario = Subtotal del renglón (cuadratura exacta para clientes y dependencias de gobierno)
-    const rawOriginalPriceExcludingIva = originalPriceIncludingIva / (1 + rate / 100);
-    const rawFinalPriceExcludingIva = finalPriceIncludingIva / (1 + rate / 100);
+    const rowTotal = Math.round((finalPriceIncludingIva * item.quantity) * 100) / 100;
+    const rowNetSubtotal = (rate > 0) ? Math.round((rowTotal / (1 + rate / 100)) * 100) / 100 : rowTotal;
+    const rowIva = Math.round((rowTotal - rowNetSubtotal) * 100) / 100;
+    const finalPriceExcludingIva = item.quantity > 0 ? Math.round((rowNetSubtotal / item.quantity) * 100) / 100 : 0;
 
-    const originalPriceExcludingIva = Math.round(rawOriginalPriceExcludingIva * 100) / 100;
-    const finalPriceExcludingIva = Math.round(rawFinalPriceExcludingIva * 100) / 100;
+    const origRowTotal = Math.round((originalPriceIncludingIva * item.quantity) * 100) / 100;
+    const rowGrossSubtotal = (rate > 0) ? Math.round((origRowTotal / (1 + rate / 100)) * 100) / 100 : origRowTotal;
+    const originalPriceExcludingIva = item.quantity > 0 ? Math.round((rowGrossSubtotal / item.quantity) * 100) / 100 : 0;
+
+    const rowDiscount = Math.max(0, rowGrossSubtotal - rowNetSubtotal);
     const discountPerUnitExcludingIva = Math.max(0, originalPriceExcludingIva - finalPriceExcludingIva);
     const discountPerUnitIncludingIva = Math.max(0, originalPriceIncludingIva - finalPriceIncludingIva);
-
-    const rowGrossSubtotal = Math.round((originalPriceExcludingIva * item.quantity) * 100) / 100;
-    const rowNetSubtotal = Math.round((finalPriceExcludingIva * item.quantity) * 100) / 100;
-    const rowDiscount = Math.max(0, rowGrossSubtotal - rowNetSubtotal);
-    const rowIva = Math.round((rowNetSubtotal * (rate / 100)) * 100) / 100;
 
     grossSubtotalExcludingIva += rowGrossSubtotal;
     totalDiscountExcludingIva += rowDiscount;
@@ -144,7 +142,8 @@ export default async function ImprimirCotizacionPage({
       discountPerUnitIncludingIva,
       taxRate: rate,
       rowIva,
-      rowSubtotalExcludingIva: rowNetSubtotal
+      rowSubtotalExcludingIva: rowNetSubtotal,
+      rowTotal
     };
   });
 

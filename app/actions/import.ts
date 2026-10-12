@@ -36,8 +36,13 @@ export async function importProducts(records: any[]) {
     const name = row.name?.trim() || 'Sin Nombre';
     const price = parseFloat(row.price) || 0;
     const cost = parseFloat(row.cost) || 0;
-    const stock = parseInt(row.stock) || 0;
-    const barcode = row.barcode?.trim() || null;
+    const hasStockColumn = row.stock !== undefined && row.stock !== null && String(row.stock).trim() !== '';
+    const stock = hasStockColumn ? (parseInt(row.stock) || 0) : undefined;
+    
+    let barcode = row.barcode ? String(row.barcode).trim() : null;
+    if (barcode && /^\d{11}$/.test(barcode)) {
+      barcode = '0' + barcode;
+    }
     const wholesalePrice = parseFloat(row.wholesalePrice) || null;
     const specialPrice = parseFloat(row.specialPrice) || null;
 
@@ -234,8 +239,8 @@ export async function importProducts(records: any[]) {
         });
       }
 
-      // Handle main stock movement if no batches are being imported
-      if (!batchNumber && stock !== existing.stock) {
+      // Handle main stock movement if no batches are being imported and stock was specified in CSV
+      if (!batchNumber && stock !== undefined && stock !== existing.stock) {
         await prisma.product.update({
           where: { id: existing.id },
           data: { stock }
@@ -262,7 +267,7 @@ export async function importProducts(records: any[]) {
           name,
           price,
           cost,
-          stock: batchNumber ? 0 : stock, // If batches exist, stock will be calculated from batches below
+          stock: batchNumber ? 0 : (stock ?? 0), // If batches exist, stock will be calculated from batches below
           wholesalePrice,
           specialPrice,
           description,
@@ -359,12 +364,12 @@ export async function importProducts(records: any[]) {
         }
       }
       
-      if (!batchNumber && stock > 0) {
+      if (!batchNumber && (stock ?? 0) > 0) {
         await prisma.inventoryMovement.create({
           data: {
             productId: productObj.id,
             type: 'IN',
-            quantity: stock,
+            quantity: stock ?? 0,
             reason: 'Importación CSV Inicial',
             userId: user.id
           }
@@ -381,16 +386,17 @@ export async function importProducts(records: any[]) {
 
       if (existingBatch) {
         const oldStock = existingBatch.stock;
+        const targetBatchStock = stock !== undefined ? stock : oldStock;
         await prisma.productBatch.update({
           where: { id: existingBatch.id },
           data: {
             expirationDate,
-            stock: stock, // Overwrite batch stock with the one in CSV
+            stock: targetBatchStock, // Overwrite batch stock with the one in CSV if provided
             cost: cost
           }
         });
         
-        if (stock !== oldStock) {
+        if (stock !== undefined && stock !== oldStock) {
           const diff = stock - oldStock;
           await prisma.inventoryMovement.create({
             data: {
@@ -409,7 +415,7 @@ export async function importProducts(records: any[]) {
             productId: productObj.id,
             batchNumber,
             expirationDate,
-            stock: stock,
+            stock: stock ?? 0,
             cost: cost
           }
         });
@@ -419,7 +425,7 @@ export async function importProducts(records: any[]) {
             productId: productObj.id,
             batchId: createdBatch.id,
             type: 'IN',
-            quantity: stock,
+            quantity: stock ?? 0,
             reason: 'Importación CSV Inicial (Lote)',
             userId: user.id
           }

@@ -2455,8 +2455,6 @@ export default function POSClient({
   let total = subTotal - discount;
   if (mode === 'QUOTE' && quoteInstitutionalBreakdown) {
     total = Math.max(0, Math.round((quoteInstitutionalBreakdown.total - discount) * 100) / 100);
-  } else if (loadedQuoteId && loadedQuoteTotal && Math.abs(loadedQuoteTotal - total) <= 5.0 && discount === 0) {
-    total = loadedQuoteTotal;
   } else {
     if (ventasConfig.redondeo === 'redondeo_50') total = Math.round(total * 2) / 2;
     if (ventasConfig.redondeo === 'redondeo_100') total = Math.round(total);
@@ -4394,10 +4392,10 @@ export default function POSClient({
                         const taxFactor = 1 + (taxRate / 100);
                         const priceWithIvaVal = item.customPrice !== undefined ? item.customPrice : itemPrice;
                         const priceWithIva = priceWithIvaVal !== '' && priceWithIvaVal !== null ? parseFloat(priceWithIvaVal as any) : 0;
-                        const priceBeforeIva = Math.round((priceWithIva / taxFactor) * 100) / 100;
-                        const rowSubtotalBeforeIva = Math.round((priceBeforeIva * item.quantity) * 100) / 100;
-                        const ivaAmount = Math.round((rowSubtotalBeforeIva * (taxRate / 100)) * 100) / 100;
-                        const rowTotal = Math.round((rowSubtotalBeforeIva + ivaAmount) * 100) / 100;
+                        const rowTotal = Math.round((priceWithIva * item.quantity) * 100) / 100;
+                        const rowSubtotalBeforeIva = taxRate > 0 ? Math.round((rowTotal / taxFactor) * 100) / 100 : rowTotal;
+                        const ivaAmount = Math.round((rowTotal - rowSubtotalBeforeIva) * 100) / 100;
+                        const priceBeforeIva = item.quantity > 0 ? Math.round((rowSubtotalBeforeIva / item.quantity) * 100) / 100 : 0;
                         
                         return (
                           <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
@@ -4614,14 +4612,9 @@ export default function POSClient({
                     {/* Subtotal */}
                     <div className="pos-cart-item-subtotal" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
                       {mode === 'QUOTE' ? (() => {
-                        const taxRate = item.taxRate ?? 16.0;
-                        const taxFactor = 1 + (taxRate / 100);
                         const priceWithIvaVal = item.customPrice !== undefined ? item.customPrice : itemPrice;
                         const priceWithIva = priceWithIvaVal !== '' && priceWithIvaVal !== null ? parseFloat(priceWithIvaVal as any) : 0;
-                        const priceBeforeIva = Math.round((priceWithIva / taxFactor) * 100) / 100;
-                        const rowSubtotalBeforeIva = Math.round((priceBeforeIva * item.quantity) * 100) / 100;
-                        const ivaAmount = Math.round((rowSubtotalBeforeIva * (taxRate / 100)) * 100) / 100;
-                        const rowTotal = Math.round((rowSubtotalBeforeIva + ivaAmount) * 100) / 100;
+                        const rowTotal = Math.round((priceWithIva * item.quantity) * 100) / 100;
                         return (
                           <span style={{ fontWeight: 'bold' }}>
                             {formatCurrency(rowTotal)}

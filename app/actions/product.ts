@@ -70,7 +70,10 @@ export async function createProduct(prevState: any, formData: FormData) {
   try {
     const branchId = formData.get('branchId') as string;
     const sku = formData.get('sku') as string;
-    const barcode = (formData.get('barcode') as string) || null;
+    let barcode = (formData.get('barcode') as string)?.trim() || null;
+    if (barcode && /^\d{11}$/.test(barcode)) {
+      barcode = '0' + barcode;
+    }
     const name = formData.get('name') as string;
     const description = formData.get('description') as string;
     const location = (formData.get('location') as string) || null;
@@ -487,8 +490,14 @@ export async function updateProduct(productId: string, formData: FormData) {
     if (sku !== null) data.sku = sku as string;
     if (name !== null) data.name = name as string;
     
-    const barcode = formData.get('barcode');
-    if (barcode !== null) data.barcode = (barcode as string) || null;
+    const barcodeRaw = formData.get('barcode');
+    if (barcodeRaw !== null) {
+      let barcodeVal = (barcodeRaw as string).trim() || null;
+      if (barcodeVal && /^\d{11}$/.test(barcodeVal)) {
+        barcodeVal = '0' + barcodeVal;
+      }
+      data.barcode = barcodeVal;
+    }
 
     const description = formData.get('description');
     if (description !== null) data.description = (description as string) || null;
@@ -525,7 +534,7 @@ export async function updateProduct(productId: string, formData: FormData) {
 
     const imageUrl = formData.get('imageUrl');
     if (imageUrl !== null) {
-      const barcodeVal = barcode !== null ? (barcode as string) : (currentProduct.barcode || null);
+      const barcodeVal = barcodeRaw !== null ? (data.barcode || null) : (currentProduct.barcode || null);
       const skuVal = sku !== null ? (sku as string) : (currentProduct.sku || null);
       data.imageUrl = saveProductImageToFile(productId, barcodeVal, skuVal, imageUrl as string);
     }

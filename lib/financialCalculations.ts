@@ -114,26 +114,27 @@ export function calculateQuoteInstitutionalBreakdown(
   let grossSubtotal = 0;
   let totalDiscount = 0;
   let totalIva = 0;
+  let computedTotal = 0;
 
   const processed = items.map(item => {
     const rate = (item.taxType === 'IVA' || item.taxType === 'IVA_IEPS' || !item.taxType)
       ? (item.taxRate ?? 16.0)
       : (item.taxType === 'EXENTO' ? 0 : (item.taxRate ?? 0));
     
-    const rawUnitBeforeIva = item.price / (1 + rate / 100);
-    const unitBeforeIva = Math.round(rawUnitBeforeIva * 100) / 100;
-    const rowSubtotalBeforeIva = Math.round((unitBeforeIva * item.quantity) * 100) / 100;
-    const rowIva = Math.round((rowSubtotalBeforeIva * (rate / 100)) * 100) / 100;
-    const rowTotal = Math.round((rowSubtotalBeforeIva + rowIva) * 100) / 100;
+    const priceWithIva = typeof item.price === 'number' ? item.price : parseFloat(item.price as any) || 0;
+    const rowTotal = Math.round((priceWithIva * item.quantity) * 100) / 100;
+    const rowSubtotalBeforeIva = (rate > 0) ? Math.round((rowTotal / (1 + rate / 100)) * 100) / 100 : rowTotal;
+    const rowIva = Math.round((rowTotal - rowSubtotalBeforeIva) * 100) / 100;
+    const unitBeforeIva = item.quantity > 0 ? Math.round((rowSubtotalBeforeIva / item.quantity) * 100) / 100 : 0;
 
     let originalUnitBeforeIva = unitBeforeIva;
     let rowGrossSubtotal = rowSubtotalBeforeIva;
     let rowDiscount = 0;
 
     if (item.originalPrice !== undefined && item.originalPrice !== null && item.originalPrice > item.price) {
-      const rawOrigUnit = item.originalPrice / (1 + rate / 100);
-      originalUnitBeforeIva = Math.round(rawOrigUnit * 100) / 100;
-      rowGrossSubtotal = Math.round((originalUnitBeforeIva * item.quantity) * 100) / 100;
+      const origRowTotal = Math.round((item.originalPrice * item.quantity) * 100) / 100;
+      rowGrossSubtotal = (rate > 0) ? Math.round((origRowTotal / (1 + rate / 100)) * 100) / 100 : origRowTotal;
+      originalUnitBeforeIva = item.quantity > 0 ? Math.round((rowGrossSubtotal / item.quantity) * 100) / 100 : 0;
       rowDiscount = Math.max(0, Math.round((rowGrossSubtotal - rowSubtotalBeforeIva) * 100) / 100);
     }
 
@@ -141,6 +142,7 @@ export function calculateQuoteInstitutionalBreakdown(
     grossSubtotal += rowGrossSubtotal;
     totalDiscount += rowDiscount;
     totalIva += rowIva;
+    computedTotal += rowTotal;
 
     return {
       unitBeforeIva,
@@ -156,23 +158,16 @@ export function calculateQuoteInstitutionalBreakdown(
   subtotal = Math.round(subtotal * 100) / 100;
   grossSubtotal = Math.round(grossSubtotal * 100) / 100;
   totalDiscount = Math.round(totalDiscount * 100) / 100;
-
-  const hasUniform16 = items.length > 0 && items.every(it => {
-    const r = it.taxRate ?? 16.0;
-    const t = it.taxType || 'IVA';
-    return (t === 'IVA' || t === 'IVA_IEPS') && r === 16.0;
-  });
-
-  const finalIva = hasUniform16 ? Math.round((subtotal * 0.16) * 100) / 100 : Math.round(totalIva * 100) / 100;
-  const total = Math.round((subtotal + finalIva) * 100) / 100;
+  totalIva = Math.round(totalIva * 100) / 100;
+  const finalTotal = Math.round(computedTotal * 100) / 100;
 
   return {
     items: processed,
     subtotal,
     grossSubtotal,
     discount: totalDiscount,
-    iva: finalIva,
-    total
+    iva: totalIva,
+    total: finalTotal
   };
 }
 

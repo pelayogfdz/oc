@@ -160,9 +160,9 @@ describe('calculateTaxBreakdown (Desglose fiscal mexicano)', () => {
 
       const res = calculateQuoteInstitutionalBreakdown(items);
 
-      expect(res.subtotal).toBe(78578.35);
-      expect(res.iva).toBe(12572.54);
-      expect(res.total).toBe(91150.89);
+      expect(res.subtotal).toBe(78576.98);
+      expect(res.iva).toBe(12572.32);
+      expect(res.total).toBe(91149.30);
       expect(Math.round((res.subtotal + res.iva) * 100) / 100).toBe(res.total);
     });
 
@@ -246,9 +246,9 @@ describe('calculateTaxBreakdown (Desglose fiscal mexicano)', () => {
 
       expect(res.items[0].originalUnitBeforeIva).toBe(16.38);
       expect(res.items[0].unitBeforeIva).toBe(13.79);
-      expect(res.items[0].rowGrossSubtotal).toBe(196.56);
-      expect(res.items[0].rowSubtotalBeforeIva).toBe(165.48);
-      expect(res.items[0].rowDiscount).toBe(31.08);
+      expect(res.items[0].rowGrossSubtotal).toBe(196.55);
+      expect(res.items[0].rowSubtotalBeforeIva).toBe(165.52);
+      expect(res.items[0].rowDiscount).toBe(31.03);
 
       expect(res.items[1].originalUnitBeforeIva).toBe(287.07);
       expect(res.items[1].unitBeforeIva).toBe(261.21);
@@ -256,12 +256,12 @@ describe('calculateTaxBreakdown (Desglose fiscal mexicano)', () => {
       expect(res.items[1].rowSubtotalBeforeIva).toBe(261.21);
       expect(res.items[1].rowDiscount).toBe(25.86);
 
-      expect(res.grossSubtotal).toBe(483.63);
-      expect(res.discount).toBe(56.94);
-      expect(res.subtotal).toBe(426.69);
+      expect(res.grossSubtotal).toBe(483.62);
+      expect(res.discount).toBe(56.89);
+      expect(res.subtotal).toBe(426.73);
       expect(Math.round((res.grossSubtotal - res.discount) * 100) / 100).toBe(res.subtotal);
       expect(res.iva).toBe(68.27);
-      expect(res.total).toBe(494.96);
+      expect(res.total).toBe(495.00);
       expect(Math.round((res.subtotal + res.iva) * 100) / 100).toBe(res.total);
     });
 
@@ -271,6 +271,30 @@ describe('calculateTaxBreakdown (Desglose fiscal mexicano)', () => {
       expect(res.iva).toBe(0);
       expect(res.total).toBe(0);
       expect(res.items).toHaveLength(0);
+    });
+
+    it('debe mantener precios cerrados exactos sin centavos residuales (ej. HP Papel 100x74 y Pascua 6x42, Xerox 5x103)', () => {
+      const itemsImage1 = [
+        { price: 74, quantity: 100, taxRate: 16 }
+      ];
+      const res1 = calculateQuoteInstitutionalBreakdown(itemsImage1);
+      expect(res1.items[0].rowTotal).toBe(7400);
+      expect(res1.total).toBe(7400);
+      expect(res1.subtotal).toBe(6379.31);
+      expect(res1.iva).toBe(1020.69);
+      expect(res1.subtotal + res1.iva).toBe(7400);
+
+      const itemsImage2 = [
+        { price: 42, quantity: 6, taxRate: 16 },
+        { price: 103, quantity: 5, taxRate: 16 }
+      ];
+      const res2 = calculateQuoteInstitutionalBreakdown(itemsImage2);
+      expect(res2.items[0].rowTotal).toBe(252);
+      expect(res2.items[1].rowTotal).toBe(515);
+      expect(res2.total).toBe(767);
+      expect(res2.items[0].rowTotal).not.toBe(252.02);
+      expect(res2.items[1].rowTotal).not.toBe(514.98);
+      expect(Math.round((res2.subtotal + res2.iva) * 100) / 100).toBe(767);
     });
 
     it('debe generar el buffer PDF con cuadratura exacta para orden CCL', async () => {
