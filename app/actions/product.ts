@@ -2165,11 +2165,11 @@ export async function enrichProductsWithTenantExternalMaps(products: any[], tena
 
     let defaultStoreUrl = '';
     if (resolvedTenantId === '8b52cbcd-c956-4717-a1bd-02e57386aaa2') {
-      defaultStoreUrl = 'https://officecity.com.mx';
+      defaultStoreUrl = 'https://www.officecity.com.mx';
     } else if (resolvedTenantId === 'db5d3949-f8dd-41f6-9627-90374d55d044') {
       defaultStoreUrl = 'https://petqro.com';
     } else if (resolvedTenantId === '0d246cea-0220-4328-92b0-8a1387ce6a6d') {
-      defaultStoreUrl = 'https://pizcadeazucar.mx';
+      defaultStoreUrl = 'https://pizcadeazucar.com';
     }
 
     const customStoreUrl = (b2cConfig?.storeUrl || '').trim();

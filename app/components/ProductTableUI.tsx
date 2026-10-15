@@ -445,17 +445,17 @@ const ProductTableUI = memo(function ProductTableUI({
                                 ].includes(branchId)
                               ))
                             ) {
-                              const domain = baseStoreUrl || 'https://pizcadeazucar.mx';
+                              const domain = (baseStoreUrl || 'https://pizcadeazucar.com').replace('pizcadeazucar.mx', 'pizcadeazucar.com');
                               b2cUrl = `${domain}/?q=${encodeURIComponent(nameOrSku)}#galeria`;
                             } else if (baseStoreUrl && !baseStoreUrl.includes('officecity.com.mx')) {
                               if (baseStoreUrl.includes('/tienda/')) {
-                                b2cUrl = `${baseStoreUrl}?q=${encodeURIComponent(nameOrSku)}`;
+                                b2cUrl = `${baseStoreUrl}?q=${encodeURIComponent(nameOrSku)}&sku=${encodeURIComponent(skuOrId)}`;
                               } else {
-                                b2cUrl = `${baseStoreUrl}/tienda?q=${encodeURIComponent(nameOrSku)}&sku=${encodeURIComponent(skuOrId)}`;
+                                b2cUrl = `${baseStoreUrl}/tienda/?q=${encodeURIComponent(nameOrSku)}&sku=${encodeURIComponent(skuOrId)}`;
                               }
                             } else {
-                              const domain = baseStoreUrl || 'https://officecity.com.mx';
-                              b2cUrl = `${domain}/tienda?q=${encodeURIComponent(nameOrSku)}&sku=${encodeURIComponent(skuOrId)}`;
+                              const domain = baseStoreUrl || 'https://www.officecity.com.mx';
+                              b2cUrl = `${domain}/tienda/?q=${encodeURIComponent(nameOrSku)}&sku=${encodeURIComponent(skuOrId)}`;
                             }
 
                             return (

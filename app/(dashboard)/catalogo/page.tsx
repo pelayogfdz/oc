@@ -33,11 +33,11 @@ export default async function Page() {
     }
   }
 
-  let defaultStoreUrl = 'https://officecity.com.mx';
+  let defaultStoreUrl = 'https://www.officecity.com.mx';
   if (branch?.tenantId === 'db5d3949-f8dd-41f6-9627-90374d55d044') {
     defaultStoreUrl = 'https://petqro.com';
   } else if (branch?.tenantId === '0d246cea-0220-4328-92b0-8a1387ce6a6d') {
-    defaultStoreUrl = 'https://pizcadeazucar.mx';
+    defaultStoreUrl = 'https://pizcadeazucar.com';
   } else if (branch?.tenantId && branch.tenantId !== '8b52cbcd-c956-4717-a1bd-02e57386aaa2') {
     defaultStoreUrl = branch.id && branch.id !== 'GLOBAL' ? `https://caanma.com/tienda/${branch.id}` : '';
   }
