@@ -56,7 +56,7 @@ export async function updateAuditStatus(auditId: string, status: string) {
   revalidatePath('/productos/auditorias');
 }
 
-export async function submitAuditCount(auditId: string, countPhase: 1 | 2 | 3, items: { productId: string, count: number }[]) {
+export async function submitAuditCount(auditId: string, countPhase: 1 | 2 | 3, items: { productId: string, count: number | null }[]) {
   const audit = await prisma.inventoryAudit.findUnique({
     where: { id: auditId }
   });
@@ -70,7 +70,7 @@ export async function submitAuditCount(auditId: string, countPhase: 1 | 2 | 3, i
   
   const productStocks = new Map(products.map(p => [p.id, p.stock]));
 
-  // 2. Insert or update AuditItems
+  // 2. Insert, update, or clear AuditItems
   for (const item of items) {
     const systemStock = productStocks.get(item.productId) || 0;
     const countField = countPhase === 1 ? 'count1' : countPhase === 2 ? 'count2' : 'count3';
@@ -79,10 +79,38 @@ export async function submitAuditCount(auditId: string, countPhase: 1 | 2 | 3, i
       where: { auditId, productId: item.productId }
     });
 
+    if (item.count === null) {
+      if (auditItem) {
+        if (countPhase === 1) {
+          await prisma.inventoryAuditItem.delete({
+            where: { id: auditItem.id }
+          });
+        } else if (countPhase === 2) {
+          await prisma.inventoryAuditItem.update({
+            where: { id: auditItem.id },
+            data: { count2: null, count3: null }
+          });
+        } else {
+          await prisma.inventoryAuditItem.update({
+            where: { id: auditItem.id },
+            data: { count3: null }
+          });
+        }
+      }
+      continue;
+    }
+
     if (auditItem) {
+      const updateData: Record<string, number | null> = { [countField]: item.count };
+      if (countPhase === 1 && auditItem.count1 !== item.count) {
+        updateData.count2 = null;
+        updateData.count3 = null;
+      } else if (countPhase === 2 && auditItem.count2 !== item.count) {
+        updateData.count3 = null;
+      }
       await prisma.inventoryAuditItem.update({
         where: { id: auditItem.id },
-        data: { [countField]: item.count }
+        data: updateData
       });
     } else {
       await prisma.inventoryAuditItem.create({
@@ -97,6 +125,7 @@ export async function submitAuditCount(auditId: string, countPhase: 1 | 2 | 3, i
   }
 
   revalidatePath(`/productos/auditorias/${auditId}`);
+  revalidatePath('/productos/auditorias');
 }
 
 export async function finalizeAudit(auditId: string) {
