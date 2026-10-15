@@ -27,8 +27,8 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
   const [showToast, setShowToast] = useState(false);
   const [copiedText, setCopiedText] = useState('');
 
-  // Mock domain for UI
-  const storeUrl = `https://caanma.com/tienda/mi-sucursal`;
+  // Linked B2C E-Commerce domain
+  const [storeUrl, setStoreUrl] = useState(initialConfig?.storeUrl || initialConfig?.defaultStoreUrl || '');
   
   // Base URL for API endpoints
   const apiBaseUrl = mounted ? `${window.location.protocol}//${window.location.host}` : 'https://caanma.com';
@@ -38,7 +38,7 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
     try {
       await updateAdvancedJSONConfig('catalogo_b2c', { 
         active, whatsapp, themeColor, allowDelivery, allowPickup,
-        apiActive, apiToken 
+        apiActive, apiToken, storeUrl: storeUrl.trim()
       });
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
@@ -104,13 +104,20 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
       {/* URL de la Tienda */}
       <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', marginBottom: '2rem' }}>
          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <ShoppingBag size={20} color="var(--caanma-primary)" /> Integración y Enlace
+            <ShoppingBag size={20} color="var(--caanma-primary)" /> Integración y Enlace B2C
          </h2>
-         <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '1rem' }}>Comparte tu enlace de ventas en tus redes sociales (Instagram, Facebook) para captar pedidos al instante.</p>
+         <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '1rem' }}>Configura el dominio de tu e-commerce B2C vinculado o comparte tu enlace de ventas en redes sociales.</p>
          
          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: '250px', padding: '1rem', backgroundColor: '#f8fafc', border: '1px solid var(--caanma-border)', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--caanma-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-               <ExternalLink size={18} /> {storeUrl}
+            <div style={{ flex: 1, minWidth: '250px', padding: '0.75rem 1rem', backgroundColor: '#f8fafc', border: '1px solid var(--caanma-border)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+               <ExternalLink size={18} color="var(--caanma-primary)" />
+               <input
+                 type="url"
+                 value={storeUrl}
+                 onChange={e => setStoreUrl(e.target.value)}
+                 placeholder="https://mitienda.com"
+                 style={{ flex: 1, border: 'none', background: 'transparent', fontSize: '1.05rem', fontWeight: 'bold', color: 'var(--caanma-primary)', outline: 'none' }}
+               />
             </div>
             <button 
               type="button"
@@ -121,6 +128,17 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
                {copiedText === 'link' ? <Check size={18} color="#16a34a" /> : <Copy size={18} />}
                {copiedText === 'link' ? 'Copiado' : 'Copiar Enlace'}
             </button>
+            {storeUrl && (
+              <a
+                href={storeUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-secondary"
+                style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}
+              >
+                <ExternalLink size={18} /> Abrir Tienda
+              </a>
+            )}
             <button className="btn-primary" style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' }}>
                <QrCode size={18} /> Descargar QR para Mostrador
             </button>

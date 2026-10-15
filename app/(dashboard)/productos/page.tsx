@@ -29,7 +29,7 @@ export default async function ProductosPage() {
     include: { 
       variants: true, 
       prices: true, 
-      branch: { select: { id: true, name: true } }, 
+      branch: { select: { id: true, name: true, tenantId: true } }, 
       externalMaps: true,
       _count: { select: { saleItems: true } }
     },

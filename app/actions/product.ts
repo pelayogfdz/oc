@@ -1222,7 +1222,7 @@ export async function searchProducts(
           where: { stock: { gt: 0 } },
           orderBy: { expirationDate: 'asc' }
         },
-        branch: { select: { id: true, name: true } }, 
+        branch: { select: { id: true, name: true, tenantId: true } }, 
         externalMaps: true,
         _count: { select: { saleItems: true } }
       },
@@ -1258,7 +1258,7 @@ export async function searchProducts(
           where: { stock: { gt: 0 } },
           orderBy: { expirationDate: 'asc' }
         },
-        branch: { select: { id: true, name: true } }, 
+        branch: { select: { id: true, name: true, tenantId: true } }, 
         externalMaps: true,
         _count: { select: { saleItems: true } }
       },
@@ -2134,51 +2134,110 @@ export async function createProductInline(data: {
 }
 
 export async function enrichProductsWithTenantExternalMaps(products: any[], tenantBranchIds: string[]) {
-  const skus = products.map(p => p.sku).filter((sku): sku is string => typeof sku === 'string' && sku.trim() !== '');
-  if (skus.length === 0) return products;
+  if (!products || products.length === 0) return products;
 
   try {
-    const externalMaps = await prisma.externalProductMap.findMany({
-      where: {
-        product: {
-          sku: { in: skus },
-          branchId: { in: tenantBranchIds }
-        }
-      },
-      include: {
-        product: {
-          select: {
-            sku: true
-          }
-        }
-      }
-    });
+    // 1. Resolve B2C E-Commerce configuration across the tenant's branches
+    let resolvedTenantId = products.find(p => p.branch?.tenantId || p.tenantId)?.branch?.tenantId || products.find(p => p.tenantId)?.tenantId || '';
+    let b2cConfig: any = null;
 
-    const mapsBySku = new Map<string, any[]>();
-    externalMaps.forEach(map => {
-      const sku = map.product?.sku?.trim();
-      if (sku) {
-        if (!mapsBySku.has(sku)) {
-          mapsBySku.set(sku, []);
+    if (tenantBranchIds && tenantBranchIds.length > 0) {
+      const branchSettingsList = await prisma.branchSettings.findMany({
+        where: { branchId: { in: tenantBranchIds } },
+        select: { configJson: true, branch: { select: { tenantId: true } } }
+      });
+
+      for (const bs of branchSettingsList) {
+        if (!resolvedTenantId && bs.branch?.tenantId) {
+          resolvedTenantId = bs.branch.tenantId;
         }
-        mapsBySku.get(sku)!.push(map);
+        if (bs.configJson) {
+          try {
+            const parsed = JSON.parse(bs.configJson)['catalogo_b2c'];
+            if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+              b2cConfig = parsed;
+              if (parsed.storeUrl || parsed.active || parsed.apiActive) break;
+            }
+          } catch (e) {}
+        }
       }
-    });
+    }
+
+    let defaultStoreUrl = '';
+    if (resolvedTenantId === '8b52cbcd-c956-4717-a1bd-02e57386aaa2') {
+      defaultStoreUrl = 'https://officecity.com.mx';
+    } else if (resolvedTenantId === 'db5d3949-f8dd-41f6-9627-90374d55d044') {
+      defaultStoreUrl = 'https://petqro.com';
+    } else if (resolvedTenantId === '0d246cea-0220-4328-92b0-8a1387ce6a6d') {
+      defaultStoreUrl = 'https://pizcadeazucar.mx';
+    }
+
+    const customStoreUrl = (b2cConfig?.storeUrl || '').trim();
+    const isExplicitlyDisabled = b2cConfig && b2cConfig.active === false && b2cConfig.apiActive === false;
+    const isB2cConfigured = !isExplicitlyDisabled && Boolean(
+      defaultStoreUrl ||
+      customStoreUrl ||
+      b2cConfig?.active ||
+      b2cConfig?.apiActive ||
+      b2cConfig?.apiToken
+    );
+    const resolvedStoreUrl = customStoreUrl || defaultStoreUrl;
 
     products.forEach(prod => {
-      const sku = prod.sku?.trim();
-      if (sku && mapsBySku.has(sku)) {
-        const tenantMaps = mapsBySku.get(sku)!;
-        if (!prod.externalMaps) {
-          prod.externalMaps = [];
-        }
-        tenantMaps.forEach(map => {
-          if (!prod.externalMaps.some((em: any) => em.id === map.id)) {
-            prod.externalMaps.push(map);
-          }
-        });
+      if (resolvedTenantId && !prod.tenantId) prod.tenantId = resolvedTenantId;
+      prod.b2cActive = isB2cConfigured;
+      if (resolvedStoreUrl) {
+        prod.b2cStoreUrl = resolvedStoreUrl;
+      } else if (isB2cConfigured && (prod.branchId || prod.branch?.id)) {
+        prod.b2cStoreUrl = `/tienda/${prod.branchId || prod.branch?.id}`;
       }
     });
+
+    // 2. Enrich Mercado Libre external maps across tenant branches
+    const skus = products.map(p => p.sku).filter((sku): sku is string => typeof sku === 'string' && sku.trim() !== '');
+    if (skus.length > 0) {
+      const externalMaps = await prisma.externalProductMap.findMany({
+        where: {
+          product: {
+            sku: { in: skus },
+            branchId: { in: tenantBranchIds }
+          }
+        },
+        include: {
+          product: {
+            select: {
+              sku: true
+            }
+          }
+        }
+      });
+
+      const mapsBySku = new Map<string, any[]>();
+      externalMaps.forEach(map => {
+        const sku = map.product?.sku?.trim();
+        if (sku) {
+          if (!mapsBySku.has(sku)) {
+            mapsBySku.set(sku, []);
+          }
+          mapsBySku.get(sku)!.push(map);
+        }
+      });
+
+      products.forEach(prod => {
+        const sku = prod.sku?.trim();
+        if (sku && mapsBySku.has(sku)) {
+          const tenantMaps = mapsBySku.get(sku)!;
+          if (!prod.externalMaps) {
+            prod.externalMaps = [];
+          }
+          tenantMaps.forEach(map => {
+            if (!prod.externalMaps.some((em: any) => em.id === map.id)) {
+              prod.externalMaps.push(map);
+            }
+          });
+        }
+      });
+    }
   } catch (e) {
     console.error('Error enriching products with tenant external maps:', e);
   }

@@ -202,6 +202,30 @@ export async function updateAdvancedJSONConfig(moduleKey: string, payload: any) 
     create: { branchId: branch.id, configJson: JSON.stringify(currentJson) }
   });
 
+  if (moduleKey === 'catalogo_b2c' && branch.tenantId) {
+    const siblingBranches = await prisma.branch.findMany({
+      where: { tenantId: branch.tenantId, isActive: true, id: { not: branch.id } },
+      select: { id: true }
+    });
+    for (const sib of siblingBranches) {
+      const sibSettings = await prisma.branchSettings.findUnique({ where: { branchId: sib.id } });
+      let sibJson: any = {};
+      if (sibSettings?.configJson) {
+        try {
+          sibJson = JSON.parse(sibSettings.configJson);
+        } catch (e) {}
+      }
+      sibJson[moduleKey] = payload;
+      await prisma.branchSettings.upsert({
+        where: { branchId: sib.id },
+        update: { configJson: JSON.stringify(sibJson) },
+        create: { branchId: sib.id, configJson: JSON.stringify(sibJson) }
+      });
+    }
+    revalidatePath('/catalogo');
+    revalidatePath('/productos');
+  }
+
   revalidatePath('/preferencias', 'layout');
 }
 

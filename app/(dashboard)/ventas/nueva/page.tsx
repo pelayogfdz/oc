@@ -63,6 +63,10 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
         wholesalePrice: true,
         specialPrice: true,
         isService: true,
+        branchId: true,
+        showInWeb: true,
+        externalMaps: true,
+        branch: { select: { id: true, name: true, tenantId: true } },
         variants: {
           select: {
             id: true,

@@ -398,6 +398,107 @@ const ProductTableUI = memo(function ProductTableUI({
                               </a>
                             );
                           })()}
+                          {(() => {
+                            if (prod.isService || prod.showInWeb === false || prod.b2cActive === false) return null;
+
+                            const tenantId = prod.branch?.tenantId || prod.tenantId;
+                            const branchId = prod.branchId || prod.branch?.id || '';
+
+                            // If not explicitly enriched with b2cActive=true, check if this is SEIT without B2C configured
+                            if (
+                              prod.b2cActive !== true &&
+                              !prod.b2cStoreUrl &&
+                              (tenantId === 'cd1e1142-ae76-46aa-b2d2-e5de02904788' ||
+                                branchId === 'df4febf5-b5e0-4eb5-a39f-22fb23bbe121')
+                            ) {
+                              return null;
+                            }
+
+                            const nameOrSku = (prod.name || prod.sku || '').trim();
+                            const skuOrId = (prod.sku || prod.id || '').trim();
+                            if (!nameOrSku && !skuOrId) return null;
+
+                            const baseStoreUrl = (prod.b2cStoreUrl || '').trim().replace(/\/+$/, '');
+                            let b2cUrl = '';
+
+                            if (
+                              baseStoreUrl.includes('petqro.com') ||
+                              (!baseStoreUrl && (
+                                tenantId === 'db5d3949-f8dd-41f6-9627-90374d55d044' ||
+                                branchId === '2e215b8c-b9e3-444f-adc3-c4387a684e05' ||
+                                branchId === 'PETQROCERRITO_ID'
+                              ))
+                            ) {
+                              const domain = baseStoreUrl || 'https://petqro.com';
+                              b2cUrl = `${domain}/?product=db-${encodeURIComponent(skuOrId)}`;
+                            } else if (
+                              baseStoreUrl.includes('pizcadeazucar') ||
+                              (!baseStoreUrl && (
+                                tenantId === '0d246cea-0220-4328-92b0-8a1387ce6a6d' ||
+                                [
+                                  'e12987ba-fffe-44a2-bdba-f85002fa2f3d',
+                                  '64147930-88f2-4dd9-a197-72f1ff4eeb9c',
+                                  'bd976b81-09b4-42c9-840a-3de29e4b65d4',
+                                  'a6cda19f-c348-4c85-98fd-ca7b1717a057',
+                                  '5feedfbe-c160-456f-b318-9d901ed084dd',
+                                  '72da9ac8-fe41-424c-a05f-57f07be335a5',
+                                ].includes(branchId)
+                              ))
+                            ) {
+                              const domain = baseStoreUrl || 'https://pizcadeazucar.mx';
+                              b2cUrl = `${domain}/?q=${encodeURIComponent(nameOrSku)}#galeria`;
+                            } else if (baseStoreUrl && !baseStoreUrl.includes('officecity.com.mx')) {
+                              if (baseStoreUrl.includes('/tienda/')) {
+                                b2cUrl = `${baseStoreUrl}?q=${encodeURIComponent(nameOrSku)}`;
+                              } else {
+                                b2cUrl = `${baseStoreUrl}/tienda?q=${encodeURIComponent(nameOrSku)}&sku=${encodeURIComponent(skuOrId)}`;
+                              }
+                            } else {
+                              const domain = baseStoreUrl || 'https://officecity.com.mx';
+                              b2cUrl = `${domain}/tienda?q=${encodeURIComponent(nameOrSku)}&sku=${encodeURIComponent(skuOrId)}`;
+                            }
+
+                            return (
+                              <a
+                                href={b2cUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                title="Ver producto en tienda en línea B2C"
+                                onClick={e => e.stopPropagation()}
+                                style={{
+                                  backgroundColor: '#0284c7',
+                                  color: '#ffffff',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 'bold',
+                                  padding: '0.12rem 0.35rem',
+                                  borderRadius: '5px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  lineHeight: '1',
+                                  border: '1px solid #0369a1',
+                                  textDecoration: 'none',
+                                  cursor: 'pointer',
+                                  transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                                }}
+                                onMouseEnter={e => {
+                                  e.currentTarget.style.transform = 'scale(1.08)';
+                                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                                }}
+                                onMouseLeave={e => {
+                                  e.currentTarget.style.transform = 'none';
+                                  e.currentTarget.style.boxShadow = 'none';
+                                }}
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block' }}>
+                                  <circle cx="12" cy="12" r="10" />
+                                  <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+                                  <path d="M2 12h20" />
+                                </svg>
+                                <span>B2C</span>
+                              </a>
+                            );
+                          })()}
                         </div>
                         <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>
                           SKU: {prod.sku || '-'} | Código: {prod.barcode || '-'}
