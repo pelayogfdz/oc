@@ -25,6 +25,7 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
   const [currentPage, setCurrentPage] = useState(1);
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const inputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   // Initialize editing counts based on the current Phase
@@ -92,7 +93,8 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
   const filteredProducts = (() => {
     let list = currentProducts;
 
-    if (!isCompleted && filterMode !== 'ALL') {
+    // Only apply COUNTED/PENDING filter when not actively searching by code/name
+    if (!isCompleted && filterMode !== 'ALL' && searchQuery.trim() === '') {
       list = list.filter((p: any) => {
         const val = editingCounts[p.id];
         const hasVal = val !== undefined && val !== '';
@@ -102,12 +104,19 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
 
     if (searchQuery.trim() !== '') {
       const normQuery = searchQuery.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      const normQueryNoZero = normQuery.replace(/^0+/, '');
       const searchWords = normQuery.split(/\s+/).filter(w => w.length > 0);
       list = list.filter((p: any) => {
         const normName = (p.name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const normSku = (p.sku || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const normBarcode = (p.barcode || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        return searchWords.every(w => normName.includes(w) || normSku.includes(w) || normBarcode.includes(w));
+        const normBarcodeNoZero = normBarcode.replace(/^0+/, '');
+        return searchWords.every(w =>
+          normName.includes(w) ||
+          normSku.includes(w) ||
+          normBarcode.includes(w) ||
+          (normQueryNoZero.length >= 6 && normBarcodeNoZero === normQueryNoZero)
+        );
       });
     }
 
@@ -148,13 +157,74 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
         }
       }, 60);
     } else {
-      const el = inputRefs.current[targetProduct.id];
-      if (el) {
-        el.focus();
-        el.select();
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      setTimeout(() => {
+        const el = inputRefs.current[targetProduct.id];
+        if (el) {
+          el.focus();
+          el.select();
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 20);
     }
+  };
+
+  const focusProductById = (productId: string) => {
+    const idx = filteredProducts.findIndex((p: any) => p.id === productId);
+    if (idx !== -1) {
+      focusProductAtIndex(idx);
+    }
+  };
+
+  const handleSearchScanSubmit = (queryText?: string) => {
+    const q = (queryText ?? searchQuery).trim().toLowerCase();
+    if (!q || filteredProducts.length === 0) return;
+    const qNoZero = q.replace(/^0+/, '');
+
+    // Prioritize exact barcode or SKU match
+    const exactMatch =
+      filteredProducts.find((p: any) => {
+        const b = (p.barcode || '').trim().toLowerCase();
+        const bNoZero = b.replace(/^0+/, '');
+        const s = (p.sku || '').trim().toLowerCase();
+        return (b && b === q) || (qNoZero.length >= 6 && bNoZero === qNoZero) || (s && s === q);
+      }) || filteredProducts[0];
+
+    if (exactMatch) {
+      focusProductById(exactMatch.id);
+    }
+  };
+
+  // Auto-focus quantity input when a barcode scanner finishes typing an exact barcode (even if scanner has no Enter suffix)
+  useEffect(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q.length < 6 || isCompleted) return;
+    const qNoZero = q.replace(/^0+/, '');
+
+    const exactBarcodeMatches = filteredProducts.filter((p: any) => {
+      const b = (p.barcode || '').trim().toLowerCase();
+      const bNoZero = b.replace(/^0+/, '');
+      return (b && b === q) || (qNoZero.length >= 6 && bNoZero === qNoZero);
+    });
+
+    if (exactBarcodeMatches.length === 1) {
+      const timer = setTimeout(() => {
+        if (document.activeElement === searchInputRef.current) {
+          focusProductById(exactBarcodeMatches[0].id);
+        }
+      }, 140);
+      return () => clearTimeout(timer);
+    }
+  }, [searchQuery, isCompleted]);
+
+  const returnToSearchAndClear = () => {
+    setSearchQuery('');
+    setCurrentPage(1);
+    setTimeout(() => {
+      if (searchInputRef.current) {
+        searchInputRef.current.focus();
+        searchInputRef.current.select();
+      }
+    }, 20);
   };
 
   const handleStepRow = (direction: 'prev' | 'next', fromProductId?: string) => {
@@ -478,12 +548,20 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
             <div style={{ position: 'relative' }}>
               <Search size={18} color="#0284c7" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
               <input 
+                ref={searchInputRef}
+                autoFocus
                 type="text" 
-                placeholder="Buscar por nombre, SKU o código..." 
+                placeholder="Escanea código, SKU o nombre..." 
                 value={searchQuery}
                 onChange={e => {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    handleSearchScanSubmit(e.currentTarget.value);
+                  }
                 }}
                 style={{ padding: '0.65rem 1rem 0.65rem 2.5rem', borderRadius: '6px', border: '1px solid #7dd3fc', outline: 'none', width: '280px', backgroundColor: 'white', fontSize: '0.95rem' }}
               />
@@ -794,7 +872,10 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
                           onFocus={() => setActiveProductId(p.id)}
                           onChange={e => handleUpdateCount(p.id, e.target.value)}
                           onKeyDown={e => {
-                            if (e.key === 'Enter' || e.key === 'ArrowDown') {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              returnToSearchAndClear();
+                            } else if (e.key === 'ArrowDown') {
                               e.preventDefault();
                               handleStepRow('next', p.id);
                             } else if (e.key === 'ArrowUp') {
@@ -803,6 +884,7 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
                             }
                           }}
                           placeholder="Ej. 100"
+                          title="Escribe la cantidad y presiona Enter para volver al buscador"
                           style={{ 
                             width: '130px', 
                             padding: '0.6rem', 

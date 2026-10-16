@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, Save, Trash, Image as ImageIcon, ArrowRightLeft, Package } from 'lucide-react';
 import { createInventoryAdjustment } from '@/app/actions/adjustment';
 import { searchProducts } from '@/app/actions/product';
@@ -22,6 +22,30 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showClearDraftConfirm, setShowClearDraftConfirm] = useState(false);
 
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const stockInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+
+  const focusStockInput = (productId: string) => {
+    setTimeout(() => {
+      const el = stockInputRefs.current[productId];
+      if (el) {
+        el.focus();
+        el.select();
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 35);
+  };
+
+  const returnToSearchAndClear = () => {
+    setSearchTerm('');
+    setTimeout(() => {
+      if (searchInputRef.current) {
+        searchInputRef.current.focus();
+        searchInputRef.current.select();
+      }
+    }, 20);
+  };
+
   useEffect(() => {
     setIsMounted(true);
     // Check if there is an active draft in localStorage
@@ -37,24 +61,85 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
       try {
         const results = await searchProducts(searchTerm, branchId);
         setDisplayedProducts(results);
+
+        // If the user scanned an exact barcode, auto-add and focus its Nuevo Stock input
+        const q = searchTerm.trim().toLowerCase();
+        if (q.length >= 6 && results && results.length > 0 && document.activeElement === searchInputRef.current) {
+          const qNoZero = q.replace(/^0+/, '');
+          const exactMatches = results.filter((p: any) => {
+            const b = (p.barcode || '').trim().toLowerCase();
+            const bNoZero = b.replace(/^0+/, '');
+            return (b && b === q) || (qNoZero.length >= 6 && bNoZero === qNoZero);
+          });
+          if (exactMatches.length === 1) {
+            toggleItem(exactMatches[0]);
+          }
+        }
       } catch (e) {
         console.error(e);
       } finally {
         setIsSearching(false);
       }
-    }, 300);
+    }, 200);
     return () => clearTimeout(delayFn);
   }, [searchTerm, branchId]);
 
   const toggleItem = (prod: any) => {
-    if (items.find(i => i.id === prod.id)) return;
-    setItems([{ id: prod.id, name: prod.name, sku: prod.sku, barcode: prod.barcode, imageUrl: prod.imageUrl, oldStock: prod.stock, newStock: prod.stock }, ...items]);
+    setItems(prev => {
+      if (prev.find(i => i.id === prod.id)) {
+        return prev;
+      }
+      return [{ id: prod.id, name: prod.name, sku: prod.sku, barcode: prod.barcode, imageUrl: prod.imageUrl, oldStock: prod.stock, newStock: prod.stock }, ...prev];
+    });
+    focusStockInput(prod.id);
+  };
+
+  const handleSearchEnter = async () => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return;
+    const qNoZero = q.replace(/^0+/, '');
+
+    let list = displayedProducts;
+    const matchInDisplayed = list.find((p: any) => {
+      const b = (p.barcode || '').trim().toLowerCase();
+      const bNoZero = b.replace(/^0+/, '');
+      const s = (p.sku || '').trim().toLowerCase();
+      return (b && b === q) || (qNoZero.length >= 6 && bNoZero === qNoZero) || (s && s === q);
+    });
+
+    if (matchInDisplayed) {
+      toggleItem(matchInDisplayed);
+      return;
+    }
+
+    try {
+      const freshResults = await searchProducts(searchTerm, branchId);
+      setDisplayedProducts(freshResults);
+      if (freshResults && freshResults.length > 0) {
+        const exact =
+          freshResults.find((p: any) => {
+            const b = (p.barcode || '').trim().toLowerCase();
+            const bNoZero = b.replace(/^0+/, '');
+            const s = (p.sku || '').trim().toLowerCase();
+            return (b && b === q) || (qNoZero.length >= 6 && bNoZero === qNoZero) || (s && s === q);
+          }) || freshResults[0];
+        if (exact) {
+          toggleItem(exact);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const updateNewStock = (id: string, val: string) => {
+    if (val === '') {
+      setItems(prev => prev.map(i => i.id === id ? { ...i, newStock: '' } : i));
+      return;
+    }
     const rawVal = parseInt(val, 10);
     const finalVal = isNaN(rawVal) ? 0 : rawVal;
-    setItems(items.map(i => i.id === id ? { ...i, newStock: finalVal } : i));
+    setItems(prev => prev.map(i => i.id === id ? { ...i, newStock: finalVal } : i));
   };
 
   const removeItem = (id: string) => setItems(items.filter(i => i.id !== id));
@@ -64,12 +149,15 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
     
     setIsPending(true);
     try {
-      const payload = items.map(i => ({
-        productId: i.id,
-        newStock: i.newStock,
-        difference: i.newStock - i.oldStock,
-        checkOldStock: i.oldStock
-      }));
+      const payload = items.map(i => {
+        const numericNewStock = i.newStock === '' ? 0 : (Number(i.newStock) || 0);
+        return {
+          productId: i.id,
+          newStock: numericNewStock,
+          difference: numericNewStock - i.oldStock,
+          checkOldStock: i.oldStock
+        };
+      });
       await createInventoryAdjustment(payload, reason, branchId);
       success('Ajuste de inventario aplicado correctamente', 'Inventario Actualizado');
       setItems([]);
@@ -130,10 +218,18 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
           <div style={{ position: 'relative' }}>
             <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--caanma-text-muted)' }} size={20} />
             <input 
+              ref={searchInputRef}
+              autoFocus
               type="text" 
-              placeholder="Buscar por nombre o código de barras..." 
+              placeholder="Escanea código de barras o busca por nombre..." 
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  handleSearchEnter();
+                }
+              }}
               style={{ width: '100%', padding: '1rem 1rem 1rem 3rem', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', fontSize: '1rem', transition: 'border-color 0.2s', outline: 'none', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
             />
           </div>
@@ -158,7 +254,6 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
                 <button 
                   key={prod.id} 
                   onClick={() => toggleItem(prod)} 
-                  disabled={isAdded}
                   style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
@@ -167,9 +262,9 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
                     borderRadius: '8px', 
                     border: '1px solid var(--caanma-border)', 
                     backgroundColor: isAdded ? '#f8fafc' : 'white', 
-                    cursor: isAdded ? 'not-allowed' : 'pointer', 
+                    cursor: 'pointer', 
                     textAlign: 'left',
-                    opacity: isAdded ? 0.6 : 1,
+                    opacity: isAdded ? 0.75 : 1,
                     transition: 'all 0.2s ease'
                   }}
                 >
@@ -263,7 +358,8 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
               </thead>
               <tbody>
                 {items.map(item => {
-                  const diff = item.newStock - item.oldStock;
+                  const numericNewStock = item.newStock === '' ? 0 : (Number(item.newStock) || 0);
+                  const diff = numericNewStock - item.oldStock;
                   const isModified = diff !== 0;
                   
                   return (
@@ -277,9 +373,17 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
                       </td>
                       <td data-label="Nuevo Stock" style={{ padding: '1rem', textAlign: 'center' }}>
                         <input 
+                          ref={el => { stockInputRefs.current[item.id] = el; }}
                           type="number" 
                           value={item.newStock}
+                          onFocus={e => e.currentTarget.select()}
                           onChange={e => updateNewStock(item.id, e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              returnToSearchAndClear();
+                            }
+                          }}
                           style={{ 
                             width: '100px', 
                             padding: '0.5rem', 
