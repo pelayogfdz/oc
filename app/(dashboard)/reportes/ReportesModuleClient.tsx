@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, TrendingUp, Package, Calculator, Users, Clock, ArrowRight, ChefHat, Tag, Landmark, CalendarClock } from 'lucide-react';
+import { BarChart3, TrendingUp, Package, Calculator, Users, Clock, ArrowRight, ChefHat, Tag, Landmark, CalendarClock, ClipboardList } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -30,6 +30,7 @@ export default function ReportesModuleClient({
     { title: 'Ventas por Vendedor', icon: <Users size={24} color="#3b82f6" />, description: 'Rendimiento y comisiones por cajero/vendedor.', route: '/reportes/ventas-por-vendedor', requiredPermission: 'report_sales_by_seller' },
     { title: 'Comisiones de Vendedores', icon: <Calculator size={24} color="#10b981" />, description: 'Liquidaciones de bonos y comisiones ganadas por tu equipo.', route: '/reportes/comisiones', requiredPermission: 'report_seller_commissions' },
     { title: 'Inventario Valorizado', icon: <Package size={24} color="#6366f1" />, description: 'Valor total de tu mercancía a costo y precio venta.', route: '/reportes/inventario-valorizado', requiredPermission: 'report_valued_inventory' },
+    { title: 'Reporte de Auditoría (Faltantes)', icon: <ClipboardList size={24} color="#e11d48" />, description: 'Artículos con inventario en CAANMA que no han sido contados en el rango de fechas seleccionado (Exportable a Excel).', route: '/reportes/auditoria-inventario', requiredPermission: ['report_inventory_log', 'report_valued_inventory', 'inv_adjust'] },
     { title: 'Compras vs Stock Remanente', icon: <Package size={24} color="#8b5cf6" />, description: 'Rastreo de productos comprados, existencias vivas remanentes, costo y capital inmovilizado.', route: '/reportes/compras-remanente', requiredPermission: 'report_purchases_remaining' },
     { title: 'Productos por Ubicación', icon: <Package size={24} color="#0d9488" />, description: 'Auditoría y listado de productos agrupados por su ubicación física con impresión de etiquetas.', route: '/reportes/ubicacion', requiredPermission: 'report_valued_inventory' },
     { title: 'Costos y Precios', icon: <Package size={24} color="#8b5cf6" />, description: 'Listado de artículos con su costo, precio de venta (por lista seleccionable) y margen de utilidad.', route: '/reportes/costos-precios', requiredPermission: 'report_costs_prices' },

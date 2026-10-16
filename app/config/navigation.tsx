@@ -55,6 +55,7 @@ export const navStructure: MenuNode[] = [
       { name: 'Traspasos entre Sucursales', path: '/productos/traspasos', requiredPermission: ['inv_transfer'], requiresOnline: true },
       { name: 'Ajustes de Inventario', path: '/productos/ajustes', requiredPermission: ['inv_adjust'] },
       { name: 'Toma Física de Inventario', path: '/productos/auditorias', requiredPermission: ['inv_adjust'] },
+      { name: 'Reporte de Auditoría (Faltantes)', path: '/reportes/auditoria-inventario', badge: 'Excel', requiredPermission: ['inv_adjust', 'inv_view', 'report_inventory_log'], requiresOnline: true },
       { name: 'Creador de Catálogos', path: '/ventas/catalogos', requiredPermission: ['inv_view'], requiresOnline: true },
       { name: 'Mínimos por Artículo', path: '/productos/minimos', badge: 'Matriz', requiredPermission: ['inv_edit'], requiresOnline: true },
     ]

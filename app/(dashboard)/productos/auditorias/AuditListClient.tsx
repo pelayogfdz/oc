@@ -54,7 +54,7 @@ export default function AuditListClient({
   return (
     <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <ClipboardList size={28} color="#10b981" />
@@ -65,15 +65,37 @@ export default function AuditListClient({
           </p>
         </div>
 
-        <button 
-          onClick={handleOpenModal} 
-          disabled={isPending}
-          className="btn-primary" 
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: isPending ? 0.7 : 1 }}
-        >
-          <Plus size={20} />
-          {isPending ? 'Iniciando...' : 'Nueva Auditoría'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <Link
+            href="/reportes/auditoria-inventario"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.65rem 1.15rem',
+              borderRadius: '8px',
+              border: '1px solid #fecdd3',
+              backgroundColor: '#fff1f2',
+              color: '#be123c',
+              fontWeight: 'bold',
+              textDecoration: 'none',
+              fontSize: '0.95rem'
+            }}
+          >
+            <ClipboardList size={18} />
+            Reporte de Artículos Sin Contar (Excel)
+          </Link>
+
+          <button 
+            onClick={handleOpenModal} 
+            disabled={isPending}
+            className="btn-primary" 
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: isPending ? 0.7 : 1 }}
+          >
+            <Plus size={20} />
+            {isPending ? 'Iniciando...' : 'Nueva Auditoría'}
+          </button>
+        </div>
       </div>
 
       <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--caanma-border)', overflow: 'hidden' }}>

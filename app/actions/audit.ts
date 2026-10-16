@@ -196,3 +196,231 @@ export async function finalizeAudit(auditId: string) {
   revalidatePath(`/productos/auditorias/${auditId}`);
   revalidatePath('/productos/auditorias');
 }
+
+export async function getAuditCoverageReport(
+  startDateInput: string | Date,
+  endDateInput: string | Date,
+  branchIdFilter?: string
+) {
+  const activeBranch = await getActiveBranch();
+  if (!activeBranch) throw new Error("No branch active");
+
+  const tenantId = activeBranch.tenantId;
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+
+  let targetBranchIds = tenantBranchIds;
+  const effectiveBranchFilter = branchIdFilter || (activeBranch.id === 'GLOBAL' ? 'ALL' : activeBranch.id);
+  if (effectiveBranchFilter !== 'ALL' && effectiveBranchFilter !== 'GLOBAL') {
+    if (tenantBranchIds.includes(effectiveBranchFilter)) {
+      targetBranchIds = [effectiveBranchFilter];
+    }
+  }
+
+  const startDate = typeof startDateInput === 'string'
+    ? new Date(startDateInput.includes('T') ? startDateInput : `${startDateInput}T00:00:00`)
+    : new Date(startDateInput);
+  const endDate = typeof endDateInput === 'string'
+    ? new Date(endDateInput.includes('T') ? endDateInput : `${endDateInput}T23:59:59.999`)
+    : new Date(endDateInput);
+
+  // 1. Fetch all active physical products in target branch(es)
+  const products = await prisma.product.findMany({
+    where: {
+      branchId: { in: targetBranchIds },
+      isActive: true,
+      isService: false
+    },
+    select: {
+      id: true,
+      sku: true,
+      barcode: true,
+      name: true,
+      category: true,
+      brand: true,
+      location: true,
+      stock: true,
+      minStock: true,
+      cost: true,
+      price: true,
+      unit: true,
+      branchId: true,
+      branch: { select: { id: true, name: true } }
+    },
+    orderBy: { name: 'asc' }
+  });
+
+  // 2. Fetch all audits in the selected period for target branch(es)
+  const auditsInPeriod = await prisma.inventoryAudit.findMany({
+    where: {
+      branchId: { in: targetBranchIds },
+      OR: [
+        { createdAt: { gte: startDate, lte: endDate } },
+        { updatedAt: { gte: startDate, lte: endDate } }
+      ]
+    },
+    include: {
+      branch: { select: { id: true, name: true } },
+      items: true
+    },
+    orderBy: { updatedAt: 'desc' }
+  });
+
+  // 3. Also fetch latest historical audit items per product (even before the selected range)
+  const allAuditItemsForBranches = await prisma.inventoryAuditItem.findMany({
+    where: {
+      audit: { branchId: { in: targetBranchIds } }
+    },
+    include: {
+      audit: { select: { id: true, name: true, status: true, createdAt: true, updatedAt: true } }
+    },
+    orderBy: {
+      audit: { updatedAt: 'desc' }
+    }
+  });
+
+  const lastHistoricalByProduct = new Map<string, {
+    auditId: string;
+    auditName: string;
+    auditDate: Date;
+    auditStatus: string;
+    countedQty: number;
+  }>();
+
+  for (const item of allAuditItemsForBranches) {
+    const countedVal = item.finalCount ?? item.count3 ?? item.count2 ?? item.count1;
+    if (countedVal === null || countedVal === undefined) continue;
+    if (!lastHistoricalByProduct.has(item.productId)) {
+      lastHistoricalByProduct.set(item.productId, {
+        auditId: item.audit.id,
+        auditName: item.audit.name,
+        auditDate: item.audit.updatedAt || item.audit.createdAt,
+        auditStatus: item.audit.status,
+        countedQty: countedVal
+      });
+    }
+  }
+
+  // Map product counts within the selected period (most recent audit in the period wins)
+  const periodCountByProduct = new Map<string, {
+    auditId: string;
+    auditName: string;
+    auditDate: Date;
+    auditStatus: string;
+    systemStockAtAudit: number;
+    countedQty: number;
+    discrepancy: number;
+    timesCountedInPeriod: number;
+  }>();
+
+  for (const audit of auditsInPeriod) {
+    for (const item of audit.items) {
+      const countedVal = item.finalCount ?? item.count3 ?? item.count2 ?? item.count1;
+      if (countedVal === null || countedVal === undefined) continue;
+
+      const existing = periodCountByProduct.get(item.productId);
+      if (!existing) {
+        periodCountByProduct.set(item.productId, {
+          auditId: audit.id,
+          auditName: audit.name,
+          auditDate: audit.updatedAt || audit.createdAt,
+          auditStatus: audit.status,
+          systemStockAtAudit: item.systemStock,
+          countedQty: countedVal,
+          discrepancy: countedVal - item.systemStock,
+          timesCountedInPeriod: 1
+        });
+      } else {
+        existing.timesCountedInPeriod += 1;
+      }
+    }
+  }
+
+  // Build enriched product list
+  const items = products.map(p => {
+    const periodInfo = periodCountByProduct.get(p.id);
+    const historicalInfo = lastHistoricalByProduct.get(p.id);
+    const countedInPeriod = Boolean(periodInfo);
+    const hasStock = p.stock > 0;
+    const costValue = Math.max(0, p.stock) * (p.cost || 0);
+    const priceValue = Math.max(0, p.stock) * (p.price || 0);
+
+    return {
+      id: p.id,
+      sku: p.sku || '',
+      barcode: p.barcode || '',
+      name: p.name,
+      category: p.category || 'Sin categoría',
+      brand: p.brand || 'Sin marca',
+      location: p.location || 'Sin ubicación',
+      unit: p.unit || 'Pza',
+      stock: p.stock,
+      minStock: p.minStock,
+      cost: p.cost || 0,
+      price: p.price || 0,
+      costValue,
+      priceValue,
+      branchId: p.branchId,
+      branchName: p.branch?.name || 'Sucursal',
+      countedInPeriod,
+      hasStock,
+      periodAudit: periodInfo || null,
+      lastHistoricalAudit: historicalInfo || null
+    };
+  });
+
+  const productsWithStock = items.filter(i => i.stock > 0);
+  const uncountedWithStock = productsWithStock.filter(i => !i.countedInPeriod);
+  const countedWithStock = productsWithStock.filter(i => i.countedInPeriod);
+  const allCountedInPeriod = items.filter(i => i.countedInPeriod);
+
+  const uncountedUnits = uncountedWithStock.reduce((acc, i) => acc + i.stock, 0);
+  const uncountedCostValue = uncountedWithStock.reduce((acc, i) => acc + i.costValue, 0);
+  const uncountedPriceValue = uncountedWithStock.reduce((acc, i) => acc + i.priceValue, 0);
+
+  const coveragePercent = productsWithStock.length > 0
+    ? Math.round((countedWithStock.length / productsWithStock.length) * 1000) / 10
+    : 100;
+
+  // Extract unique categories, brands, and locations for filtering
+  const categories = Array.from(new Set(products.map(p => p.category).filter((c): c is string => Boolean(c && c.trim())))).sort();
+  const brands = Array.from(new Set(products.map(p => p.brand).filter((b): b is string => Boolean(b && b.trim())))).sort();
+  const locations = Array.from(new Set(products.map(p => p.location).filter((l): l is string => Boolean(l && l.trim())))).sort();
+
+  return {
+    items,
+    auditsInPeriod: auditsInPeriod.map(a => ({
+      id: a.id,
+      name: a.name,
+      status: a.status,
+      branchName: a.branch?.name || 'Sucursal',
+      createdAt: a.createdAt,
+      updatedAt: a.updatedAt,
+      itemsCount: a.items.filter(it => (it.finalCount ?? it.count3 ?? it.count2 ?? it.count1) !== null).length
+    })),
+    metrics: {
+      totalCatalogProducts: items.length,
+      totalWithStock: productsWithStock.length,
+      uncountedWithStockCount: uncountedWithStock.length,
+      countedWithStockCount: countedWithStock.length,
+      allCountedInPeriodCount: allCountedInPeriod.length,
+      uncountedUnits,
+      uncountedCostValue,
+      uncountedPriceValue,
+      coveragePercent,
+      auditsInPeriodCount: auditsInPeriod.length
+    },
+    filters: {
+      branches: tenantBranches,
+      categories,
+      brands,
+      locations
+    },
+    effectiveBranchFilter
+  };
+}
+
